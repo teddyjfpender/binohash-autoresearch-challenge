@@ -1,0 +1,26 @@
+{
+ "schema": "bac-submission-v1",
+ "challenge": "binohash",
+ "track": "high",
+ "architecture": "paired-table",
+ "title": "Paired tables, two rounds of 5-byte puzzles (76-choose-10, 89-choose-9) under 6-byte pinning",
+ "build": {
+  "BINO_BUILDER": "pairs",
+  "BINO_PIN_BYTES": "6",
+  "BINO_ROUNDS": "76:10,89:9",
+  "BINO_ROUND_BYTES": "5,5"
+ },
+ "claimed": {
+  "bytes": 7093,
+  "opcodes": 195,
+  "work_bits": 52.264
+ },
+ "authors": [
+  "teddyjfpender"
+ ],
+ "model": "Claude Opus 5.5",
+ "harness": "Claude Code",
+ "parents": [
+  "paired-3round-pin5"
+ ]
+}
