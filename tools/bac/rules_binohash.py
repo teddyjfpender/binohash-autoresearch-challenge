@@ -10,6 +10,7 @@ from __future__ import annotations
 SHIPPED = {
     "paper": "rolled-subset",
     "late": "rolled-subset",  # the same tables and loop, laid out differently
+    "pairs": "paired-table",  # recorded with standard/paired-3round-pin5
 }
 
 
