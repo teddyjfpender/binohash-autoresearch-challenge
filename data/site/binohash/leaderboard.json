@@ -33,8 +33,8 @@
   }
  },
  "ledger": "challenges/binohash/results.tsv",
- "ledgerRows": 9,
- "ledgerHead": "4ac9c241e3a663db71783cbb15da0de87338be7f205a144bbefef87774df286c",
+ "ledgerRows": 10,
+ "ledgerHead": "9f86eede378226ebfe232e2bfb27b3d2b64a007ffa76b6a58b6919c0bfbb1be5",
  "tracks": [
   {
    "track": "standard",
@@ -717,32 +717,32 @@
    "title": "High: the paper's 6-byte pinning configuration",
    "spec": "bh1-high",
    "securityFloorBits": 88.4,
-   "instances": 3,
+   "instances": 4,
    "best": {
-    "unixTime": 1791814853,
+    "unixTime": 1791820350,
     "track": "high",
-    "architecture": "rolled-subset",
-    "bytes": 9265,
-    "opcodes": 191,
-    "workBits": 52.235,
-    "score": 8530623757.449,
-    "securityBits": 88.411,
+    "architecture": "paired-table",
+    "bytes": 10737,
+    "opcodes": 201,
+    "workBits": 51.445,
+    "score": 6016824040.325,
+    "securityBits": 89.993,
     "lanes": 48,
     "engine": "reference-48+core-20",
-    "instanceSha256": "81d5d7e604d286c8f5cb844b6fc9847529c3d860cd887c099ef021a6193be380",
+    "instanceSha256": "52c100479236fb7f56173c647f0ca72118940471f406e02a86b3fa5c0f530c3b",
     "verifierSha256": "c2d601fc9a4953b781c6599130ca1b89fa5c90bcfad1d771fd7059b34b78cdb0",
-    "commit": "genesis",
-    "pr": null,
+    "commit": "5fd648907e5e947393a682ca2824a6486b47eb97",
+    "pr": 7,
     "author": "teddyjfpender",
     "model": "Claude Opus 5.5",
     "harness": "Claude Code",
-    "submission": "high/late-unclamped-pin6",
-    "kind": "historical",
+    "submission": "high/paired-3round-pin6",
+    "kind": "submission",
     "standing": [
-     "architecture-elite",
+     "new-architecture",
      "front"
     ],
-    "note": "Late pools, first round unclamped, two rounds of 120-choose-8, 6-byte pinning"
+    "note": "Paired tables, three rounds (32, 24 and 32 bits) under 6-byte pinning"
    },
    "baseline": {
     "unixTime": 1791814853,
@@ -770,8 +770,147 @@
     ],
     "note": "Binohash paper, two rounds of 120-choose-8, 6-byte pinning"
    },
-   "belowBaseline": 0.055645,
+   "belowBaseline": 0.333927,
    "architectures": [
+    {
+     "id": "paired-table",
+     "name": "Paired table with height markers",
+     "parent": "rolled-subset",
+     "instances": 1,
+     "firstUnixTime": 1791820350,
+     "elite": {
+      "unixTime": 1791820350,
+      "track": "high",
+      "architecture": "paired-table",
+      "bytes": 10737,
+      "opcodes": 201,
+      "workBits": 51.445,
+      "score": 6016824040.325,
+      "securityBits": 89.993,
+      "lanes": 48,
+      "engine": "reference-48+core-20",
+      "instanceSha256": "52c100479236fb7f56173c647f0ca72118940471f406e02a86b3fa5c0f530c3b",
+      "verifierSha256": "c2d601fc9a4953b781c6599130ca1b89fa5c90bcfad1d771fd7059b34b78cdb0",
+      "commit": "5fd648907e5e947393a682ca2824a6486b47eb97",
+      "pr": 7,
+      "author": "teddyjfpender",
+      "model": "Claude Opus 5.5",
+      "harness": "Claude Code",
+      "submission": "high/paired-3round-pin6",
+      "kind": "submission",
+      "standing": [
+       "new-architecture",
+       "front"
+      ],
+      "note": "Paired tables, three rounds (32, 24 and 32 bits) under 6-byte pinning"
+     },
+     "fewestBytes": {
+      "unixTime": 1791820350,
+      "track": "high",
+      "architecture": "paired-table",
+      "bytes": 10737,
+      "opcodes": 201,
+      "workBits": 51.445,
+      "score": 6016824040.325,
+      "securityBits": 89.993,
+      "lanes": 48,
+      "engine": "reference-48+core-20",
+      "instanceSha256": "52c100479236fb7f56173c647f0ca72118940471f406e02a86b3fa5c0f530c3b",
+      "verifierSha256": "c2d601fc9a4953b781c6599130ca1b89fa5c90bcfad1d771fd7059b34b78cdb0",
+      "commit": "5fd648907e5e947393a682ca2824a6486b47eb97",
+      "pr": 7,
+      "author": "teddyjfpender",
+      "model": "Claude Opus 5.5",
+      "harness": "Claude Code",
+      "submission": "high/paired-3round-pin6",
+      "kind": "submission",
+      "standing": [
+       "new-architecture",
+       "front"
+      ],
+      "note": "Paired tables, three rounds (32, 24 and 32 bits) under 6-byte pinning"
+     },
+     "fewestOpcodes": {
+      "unixTime": 1791820350,
+      "track": "high",
+      "architecture": "paired-table",
+      "bytes": 10737,
+      "opcodes": 201,
+      "workBits": 51.445,
+      "score": 6016824040.325,
+      "securityBits": 89.993,
+      "lanes": 48,
+      "engine": "reference-48+core-20",
+      "instanceSha256": "52c100479236fb7f56173c647f0ca72118940471f406e02a86b3fa5c0f530c3b",
+      "verifierSha256": "c2d601fc9a4953b781c6599130ca1b89fa5c90bcfad1d771fd7059b34b78cdb0",
+      "commit": "5fd648907e5e947393a682ca2824a6486b47eb97",
+      "pr": 7,
+      "author": "teddyjfpender",
+      "model": "Claude Opus 5.5",
+      "harness": "Claude Code",
+      "submission": "high/paired-3round-pin6",
+      "kind": "submission",
+      "standing": [
+       "new-architecture",
+       "front"
+      ],
+      "note": "Paired tables, three rounds (32, 24 and 32 bits) under 6-byte pinning"
+     },
+     "leastWork": {
+      "unixTime": 1791820350,
+      "track": "high",
+      "architecture": "paired-table",
+      "bytes": 10737,
+      "opcodes": 201,
+      "workBits": 51.445,
+      "score": 6016824040.325,
+      "securityBits": 89.993,
+      "lanes": 48,
+      "engine": "reference-48+core-20",
+      "instanceSha256": "52c100479236fb7f56173c647f0ca72118940471f406e02a86b3fa5c0f530c3b",
+      "verifierSha256": "c2d601fc9a4953b781c6599130ca1b89fa5c90bcfad1d771fd7059b34b78cdb0",
+      "commit": "5fd648907e5e947393a682ca2824a6486b47eb97",
+      "pr": 7,
+      "author": "teddyjfpender",
+      "model": "Claude Opus 5.5",
+      "harness": "Claude Code",
+      "submission": "high/paired-3round-pin6",
+      "kind": "submission",
+      "standing": [
+       "new-architecture",
+       "front"
+      ],
+      "note": "Paired tables, three rounds (32, 24 and 32 bits) under 6-byte pinning"
+     },
+     "history": [
+      {
+       "unixTime": 1791820350,
+       "track": "high",
+       "architecture": "paired-table",
+       "bytes": 10737,
+       "opcodes": 201,
+       "workBits": 51.445,
+       "score": 6016824040.325,
+       "securityBits": 89.993,
+       "lanes": 48,
+       "engine": "reference-48+core-20",
+       "instanceSha256": "52c100479236fb7f56173c647f0ca72118940471f406e02a86b3fa5c0f530c3b",
+       "verifierSha256": "c2d601fc9a4953b781c6599130ca1b89fa5c90bcfad1d771fd7059b34b78cdb0",
+       "commit": "5fd648907e5e947393a682ca2824a6486b47eb97",
+       "pr": 7,
+       "author": "teddyjfpender",
+       "model": "Claude Opus 5.5",
+       "harness": "Claude Code",
+       "submission": "high/paired-3round-pin6",
+       "kind": "submission",
+       "standing": [
+        "new-architecture",
+        "front"
+       ],
+       "note": "Paired tables, three rounds (32, 24 and 32 bits) under 6-byte pinning"
+      }
+     ]
+    },
     {
      "id": "rolled-subset",
      "name": "Rolled subsets with separate commitments",
@@ -990,6 +1129,32 @@
       "front"
      ],
      "note": "Late pools, first round unclamped, two rounds of 120-choose-8, 6-byte pinning"
+    },
+    {
+     "unixTime": 1791820350,
+     "track": "high",
+     "architecture": "paired-table",
+     "bytes": 10737,
+     "opcodes": 201,
+     "workBits": 51.445,
+     "score": 6016824040.325,
+     "securityBits": 89.993,
+     "lanes": 48,
+     "engine": "reference-48+core-20",
+     "instanceSha256": "52c100479236fb7f56173c647f0ca72118940471f406e02a86b3fa5c0f530c3b",
+     "verifierSha256": "c2d601fc9a4953b781c6599130ca1b89fa5c90bcfad1d771fd7059b34b78cdb0",
+     "commit": "5fd648907e5e947393a682ca2824a6486b47eb97",
+     "pr": 7,
+     "author": "teddyjfpender",
+     "model": "Claude Opus 5.5",
+     "harness": "Claude Code",
+     "submission": "high/paired-3round-pin6",
+     "kind": "submission",
+     "standing": [
+      "new-architecture",
+      "front"
+     ],
+     "note": "Paired tables, three rounds (32, 24 and 32 bits) under 6-byte pinning"
     }
    ],
    "history": [
@@ -1070,6 +1235,32 @@
       "front"
      ],
      "note": "Late pools, first round unclamped, two rounds of 120-choose-8, 6-byte pinning"
+    },
+    {
+     "unixTime": 1791820350,
+     "track": "high",
+     "architecture": "paired-table",
+     "bytes": 10737,
+     "opcodes": 201,
+     "workBits": 51.445,
+     "score": 6016824040.325,
+     "securityBits": 89.993,
+     "lanes": 48,
+     "engine": "reference-48+core-20",
+     "instanceSha256": "52c100479236fb7f56173c647f0ca72118940471f406e02a86b3fa5c0f530c3b",
+     "verifierSha256": "c2d601fc9a4953b781c6599130ca1b89fa5c90bcfad1d771fd7059b34b78cdb0",
+     "commit": "5fd648907e5e947393a682ca2824a6486b47eb97",
+     "pr": 7,
+     "author": "teddyjfpender",
+     "model": "Claude Opus 5.5",
+     "harness": "Claude Code",
+     "submission": "high/paired-3round-pin6",
+     "kind": "submission",
+     "standing": [
+      "new-architecture",
+      "front"
+     ],
+     "note": "Paired tables, three rounds (32, 24 and 32 bits) under 6-byte pinning"
     }
    ],
    "targets": [
