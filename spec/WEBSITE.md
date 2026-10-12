@@ -18,6 +18,7 @@ contract check fails if it is stale.
 | `challenges/<id>/results.tsv` | [LEDGER.md](LEDGER.md) | One row per validated instance. |
 | `data/site/<id>/leaderboard.json` | `bac-leaderboard-v1` | Per track: best instance, architecture elites, front, history, targets. |
 | `data/site/<id>/challenge.json` | `bac-site-content-v1` | Display copy: titles, summaries, rules, how to take part. Authored. |
+| `challenges/<id>/starting-board.json` | `bac-starting-board-v1` | Optional (`startingBoard` in `sources.json`). The instances the board starts from, with measurements on public lanes. |
 
 ## `leaderboard.json`
 
@@ -52,3 +53,6 @@ Every instance object has the same keys: `unixTime`, `track`, `architecture`, `b
 - Pull request and author data are also available live from the GitHub API through `pr`.
 - While `activation.json` says `staging`, numbers may be re-validated and should be shown as
   provisional. A track whose `baseline` is null has no recorded baseline yet.
+- The starting board's `local` measurements are not ledger rows: public lanes, no ledger-key
+  seed, no signature. A site may show them for a track that has no rows yet, and must label
+  them as measured and not yet recorded. Once a track has rows, show the rows.

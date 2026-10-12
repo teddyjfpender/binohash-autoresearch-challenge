@@ -9,7 +9,8 @@
    "targets": "challenges/binohash/targets.json",
    "ledger": "challenges/binohash/results.tsv",
    "leaderboard": "data/site/binohash/leaderboard.json",
-   "content": "data/site/binohash/challenge.json"
+   "content": "data/site/binohash/challenge.json",
+   "startingBoard": "challenges/binohash/starting-board.json"
   }
  }
 }

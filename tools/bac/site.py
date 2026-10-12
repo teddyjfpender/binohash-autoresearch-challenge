@@ -105,6 +105,8 @@ def sources(all_challenges: list[Challenge]) -> dict:
                 "ledger": f"{c.path}/{c.contract['ledger']}",
                 "leaderboard": f"data/site/{c.id}/leaderboard.json",
                 "content": f"data/site/{c.id}/challenge.json",
+                # Measurements of the instances the board starts from; evidence, not rows.
+                **({"startingBoard": f"{c.path}/starting-board.json"} if (c.dir / "starting-board.json").exists() else {}),
             }
             for c in all_challenges
         },
