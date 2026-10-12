@@ -1,0 +1,32 @@
+{
+ "schema": "bac-submission-v1",
+ "challenge": "binohash",
+ "track": "high",
+ "architecture": "rolled-subset",
+ "title": "Early openings under 6-byte pinning, 93-choose-9 and 74-choose-10",
+ "build": {
+  "BINO_BUILDER": "early",
+  "BINO_KEY_ROLL": "0,1",
+  "BINO_PAD": "0,0",
+  "BINO_PIN_BYTES": "6",
+  "BINO_PIN_ORDER": "1,2,4,3",
+  "BINO_PIN_SEP": "3",
+  "BINO_PIN_SEP_AT": "0",
+  "BINO_ROUNDS": "93:9,74:10",
+  "BINO_ROUND_BYTES": "5,5"
+ },
+ "claimed": {
+  "bytes": 7198,
+  "opcodes": 197,
+  "work_bits": 52.247
+ },
+ "authors": [
+  "teddyjfpender"
+ ],
+ "model": "Claude Opus 5.5",
+ "harness": "Claude Code",
+ "parents": [
+  "early-openings-79-109",
+  "late-unclamped-pin6"
+ ]
+}
