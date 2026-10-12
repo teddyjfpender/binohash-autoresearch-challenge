@@ -1,7 +1,7 @@
 """What the evaluator counts: puzzle work, the security level and honest grinding work.
 
 Everything here is exact integer or 50-digit decimal arithmetic, so the same instance gives the
-same numbers on every machine. The definitions are spec/SECURITY-MODEL.md (BH-SEC-1) and
+same numbers on every machine. The definitions are spec/SECURITY-MODEL.md (BH-SEC-2) and
 spec/WORK-MODEL.md (BH-WORK-1); this file is their implementation.
 """
 from __future__ import annotations
@@ -128,29 +128,65 @@ def _staged(start: Decimal, stages: list[tuple[Decimal, Decimal]]) -> tuple[Deci
     return best, best_order
 
 
-def security_bits(pin_bits: Decimal | None, rounds: list[tuple[int, Decimal]]) -> Decimal:
-    """BH-SEC-1 collision resistance in bits of sighash evaluations: the cheaper of two attacks.
+GRID = 8  # subset sizes are searched in steps of 1/8 bit
 
-    `rounds` holds (selections S_r, puzzle bits W_r); `pin_bits` is the cheapest pinning puzzle,
-    or None when pinning is not credited. Both attackers abandon a transaction at the first
-    round that has no solution for it.
 
-    Exhaustive birthday. Pin T transactions and try every selection of every round. Two
-    transactions share a solved selection of round r in an expected S_r * 4^-W_r ways, so a
-    colliding pair appears at T = prod_r 2^W_r / sqrt(S_r). With S_r = 2^W_r and no abandoning
-    this is the paper's section 5.3 figure.
+def _restricted_birthday(pin: Decimal, rounds: list[tuple[int, Decimal]]) -> Decimal:
+    """The cheapest birthday attack in which every transaction searches the same subset of each
+    round's selections, of size s_r <= S_r, and is abandoned at the first round whose subset
+    holds no solution.
 
-    Stored digests. Find N digests by exhaustive or first-hit search, then test them on fresh
-    pinned transactions: one evaluation per test, success 2^-sum(W_r) each. N is chosen to
-    balance the pinning of the fresh transactions against the cost of the stored digests.
-    Rounds with far more selections than their puzzle needs do not help against this attack.
+    Two transactions share a solved selection of round r in s_r * 4^-W_r ways, so a colliding
+    pair needs T = prod_r 2^W_r / sqrt(s_r) transactions, each costing
+    pin + s_1 + p_1 s_2 + ... with p_r = 1 - exp(-s_r 2^-W_r). Shrinking a subset costs its
+    square root in transactions and saves in proportion wherever that round dominates the cost
+    of a transaction. The minimum is found by coordinate descent over subset sizes on a grid of
+    1/8 bit, from the full and from the empty search, for every order of the rounds; the result
+    is evaluated in decimal arithmetic at the grid point found.
     """
-    pin = exp2(pin_bits) if pin_bits is not None else Decimal(0)
+    bits = [float(w) for _, w in rounds]
+    tops = [math.log2(space) for space, _ in rounds]
+    grids = [[min(k / GRID, top) for k in range(int(top * GRID) + 2)] for top in tops]
+    floor_pin = float(pin)
+
+    def cost(order, xs) -> float:
+        reached, total = 1.0, floor_pin
+        for r in order:
+            size = 2.0 ** xs[r]
+            total += reached * size
+            reached *= -math.expm1(-size * 2.0 ** -bits[r])
+        return math.log2(total) + sum(bits[r] - xs[r] / 2 for r in range(len(rounds)))
+
+    best = None
+    for order in itertools.permutations(range(len(rounds))):
+        for start in (list(tops), [0.0] * len(rounds)):
+            xs, value = list(start), cost(order, start)
+            improved = True
+            while improved:
+                improved = False
+                for r in range(len(rounds)):
+                    for x in grids[r]:
+                        trial = xs[:r] + [x] + xs[r + 1:]
+                        candidate = cost(order, trial)
+                        if candidate < value - 1e-12:
+                            xs, value, improved = trial, candidate, True
+            if best is None or value < best[0]:
+                best = (value, order, xs)
+    _, order, xs = best
+    reached, total = Decimal(1), pin
+    for r in order:
+        size = exp2(Decimal(repr(xs[r])))
+        total += reached * size
+        reached *= 1 - CTX.exp(-size * CTX.divide(Decimal(1), exp2(rounds[r][1])))
+    for r, (_, w) in enumerate(rounds):
+        total *= exp2(w - Decimal(repr(xs[r])) / 2)
+    return total
+
+
+def _level(pin: Decimal, rounds: list[tuple[int, Decimal]]) -> Decimal:
+    """The cheaper of the birthday and the stored-digest attack, in sighash evaluations."""
     stats = _round_stats(rounds)
     exhaustive, _ = _staged(pin, [(Decimal(space), p) for (space, _), (_, _, p) in zip(rounds, stats)])
-    birthday = exhaustive
-    for (space, bits), _ in zip(rounds, stats):
-        birthday *= exp2(bits - log2(space) / 2)
     solvable = math.prod((p for _, _, p in stats), start=Decimal(1))
     first_hit, _ = _staged(pin, [(CTX.divide(p, q), p) for q, _, p in stats])
     per_digest = min(CTX.divide(first_hit, solvable),
@@ -158,7 +194,31 @@ def security_bits(pin_bits: Decimal | None, rounds: list[tuple[int, Decimal]]) -
     tests = exp2(sum((bits for _, bits in rounds), Decimal(0)))
     stored = max(Decimal(1), CTX.sqrt(CTX.divide(tests * pin, per_digest)))
     targeted = CTX.divide(tests * pin, stored) + tests + stored * per_digest
-    return log2(min(birthday, targeted))
+    return min(_restricted_birthday(pin, rounds), targeted)
+
+
+def security_bits(pin_bits: list[Decimal] | None, rounds: list[tuple[int, Decimal]]) -> Decimal:
+    """BH-SEC-2 collision resistance in bits of sighash evaluations.
+
+    `rounds` holds (selections S_r, puzzle bits W_r); `pin_bits` holds the bits of every pinning
+    puzzle, or None when pinning is not credited. The level is the cheapest of:
+
+    Birthday over common subsets (see `_restricted_birthday`). With every subset full and no
+    abandoning this is the paper's section 5.3 figure.
+
+    Stored digests. Find N digests, then test them on fresh pinned transactions: one evaluation
+    per test, success 2^-sum(W_r) each.
+
+    The pinning cap. Four pinning puzzles force four sighash modes, SIGHASH_ALL among them, only
+    while solving two of them under one mode is out of reach (the paper's assumption in section
+    3.1). That costs 2^(W_a + W_b) for the two cheapest puzzles, once, and what the attacker
+    gains by it depends on what a downstream verifier checks. The model does not price that; it
+    refuses to credit any level above the cap.
+    """
+    if pin_bits is None:
+        return log2(_level(Decimal(0), rounds))
+    ordered = sorted(pin_bits)
+    return min(log2(_level(exp2(ordered[0]), rounds)), ordered[0] + ordered[1])
 
 
 def honest_work(pins: list[tuple[Decimal, int]], rounds: list[tuple[int, Decimal, int]]) -> dict:

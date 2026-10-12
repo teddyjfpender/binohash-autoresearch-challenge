@@ -1,7 +1,7 @@
 {
  "schema": "bac-targets-v1",
  "challenge": "binohash",
- "conventions": "Published points use the Binohash paper's accounting. It counts a signature that is n bytes short as 8n + 2 bits of work; this evaluator counts 8n, because the interpreter also accepts the negated nonce and values of s that wrap around the group order, which quadruples the accepted sighashes (spec/SECURITY-MODEL.md, section 3). The paper counts honest work in sighash evaluations and assumes every round has a solution; this evaluator counts SHA-256 compressions and the retries when a round has none. The paper's byte count is the locking script alone; the evaluator adds the unlocking script. Security and work figures are therefore not comparable cell for cell: `securityBitsPaperFormula` is the paper's section 5.3 formula evaluated with the evaluator's puzzle bits; `securityBitsEvaluator` adds the attacker who abandons a transaction after a round without a solution, and is what ledger rows carry.",
+ "conventions": "Published points use the Binohash paper's accounting. It counts a signature that is n bytes short as 8n + 2 bits of work; this evaluator counts 8n, because the interpreter also accepts the negated nonce and values of s that wrap around the group order, which quadruples the accepted sighashes (spec/SECURITY-MODEL.md, section 3). The paper counts honest work in sighash evaluations and assumes every round has a solution; this evaluator counts SHA-256 compressions and the retries when a round has none. The paper's byte count is the locking script alone; the evaluator adds the unlocking script. Security and work figures are therefore not comparable cell for cell: `securityBitsPaperFormula` is the paper's section 5.3 formula evaluated with the evaluator's puzzle bits; `securityBitsEvaluator` is the level under BH-SEC-2 and is what ledger rows carry: it adds the attacker who abandons a transaction after a round without a solution and may search part of each round, and caps the level at the work of serving the two cheapest pinning puzzles with one signature mode (80.011 bits with 5-byte pinning, 96.011 with 6-byte). The standard configuration sits on that cap; its rounds alone are worth 81.52 bits.",
  "targets": [
   {
    "id": "binohash-paper-standard",
@@ -19,7 +19,7 @@
    "collisionBitsPublished": 84,
    "collisionBitsPublishedDerivation": 83.2,
    "securityBitsPaperFormula": 81.20,
-   "securityBitsEvaluator": 81.52
+   "securityBitsEvaluator": 80.01
   },
   {
    "id": "binohash-paper-high",

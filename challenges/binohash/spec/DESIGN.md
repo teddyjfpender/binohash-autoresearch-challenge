@@ -109,7 +109,7 @@ Before any execution. Each refusal names its stage.
 | `puzzle-size` | A size no signature with nonce `r_min` can have, or a puzzle that accepts the `SIGHASH_SINGLE` bug digest. |
 | `pin-cover` | A number of pinning puzzles other than four or zero, or two whose accepted sighashes overlap. |
 | `nonce-space` | A pool element that is not a strictly encoded signature, repeats within or across pools, or occurs more than once in the script. |
-| `binding` | A commitment under 20 bytes or shared between elements; a preimage under 16 bytes. |
+| `binding` | A commitment under 20 bytes or shared between elements; a preimage under 16 bytes; a preimage that equals one of the round's public keys or any push of the script; two elements of a round with the same preimage. |
 | `structure` | A declared offset that is not a push; shared pushes between puzzles or elements. |
 
 ## 5. Lanes
@@ -146,21 +146,50 @@ On **every lane** the judge:
    could select it.
 
 On **audit lanes** the judge then plays a dishonest spender. The interpreter runs in *oracle
-mode*: a signature check passes whenever the spender controls the signature or the key (they
-can grind the one and recover the other), an equality check passes when both sides come from
-the unlocking script (they choose both), and a hash of an unlocking item equals any declared
-commitment it is compared with (the spender made the commitments and can open every one).
-Checks between constants of the script stay real. Starting from the honest spend, the judge alters the unlocking script:
+mode*, which decides each check by what that spender could arrange and not by the values the
+honest spend happens to hold:
+
+- A signature check passes whenever the spender controls the signature or the key: they can
+  grind the one and recover the other. A check of a script constant against a script constant
+  is verified for real.
+- An equality passes when both sides come from the unlocking script (an item, its hash or its
+  size), because the spender chooses both.
+- An equality passes when one side is an unlocking item itself, whatever the other side is. The
+  spender can set the item to the value the other side evaluates to, the hash of a script
+  constant included. This does not extend to the hash or the size of an unlocking item: making
+  those equal a given value needs a preimage or a signature of that size.
+- The hash of an unlocking item equals any declared commitment it is compared with, because the
+  spender made the commitments and can open every one.
+
+Every other check is real, and encoding rules always apply. Starting from the honest spend, the
+judge alters the unlocking script:
 
 - every index set to every value from -2 to past the deepest stack item, one at a time;
-- the same with a pad of well-formed signatures planted beneath the witness, deeper than any
-  pool, so an index that escapes its pool finds attacker material for both the signature and
-  its commitment;
-- several indexes changed at once;
+- several indexes changed at once (two to four);
+- three or four items of any kind changed at once: an index takes another value, and any other
+  item is replaced by a copy of some item of the honest spend, so a key can stand where a
+  preimage was and a signature where a key was;
 - items exchanged, dropped and repeated;
 - preimages replaced by random bytes, by another element's preimage, by nothing;
 - keys replaced; puzzle signatures replaced by ones of another hash type, a byte shorter, a
-  byte longer, by a pool signature, by nothing.
+  byte longer, by a pool signature, by nothing;
+- a pad of well-formed signatures planted beneath the witness, deeper than the largest pool by
+  the spec's `plantedMargin`, so an index that escapes its pool finds attacker material for
+  both the signature and its commitment. With the pad in place every index is again set to
+  every depth, one at a time, and several indexes are changed at once. The planted signatures
+  are the shortest valid DER signatures, 9 bytes with the hash-type byte, so the pad and the
+  witness together stay within the 10,000-byte limit of an unlocking script under the largest
+  pools. The pad is shortened only if that limit or the 1,000-item stack limit would otherwise
+  be exceeded.
+
+The single-item sweeps are exhaustive over the index range. The combined alterations are
+sampled, `multiSlotMutants` of each kind per audit lane.
+
+The static rule on preimages (section 4, `binding`) belongs with this. A commitment must hide a
+value of its own. An element's public key can be recovered from its signature, and every push
+of the script is public, so a preimage equal to one of them opens its commitment with nothing
+the script did not already publish. An instance that declares such a preimage, or the same
+preimage for two elements of a round, is refused before any lane runs.
 
 Every altered spend that is **accepted** must still show the full structure of step 4. One that
 does not is a counterexample: the instance is refused at stage `soundness` and the unlocking
@@ -194,19 +223,21 @@ Shown, for the judged instance:
 - It respects the consensus limits, and an honest spender can spend the test twin for every
   sampled transaction, by the reference engine's reading of consensus and, where `--core` ran,
   by Bitcoin Core's.
-- Its puzzles cost what the evaluator says, given assumption A1.
+- Its puzzles cost what the evaluator says, given assumption A1, and its level is what
+  BH-SEC-2 gives for those puzzles and pools.
 - Every spend the audit constructed and the script accepted had the declared structure.
 
 Not shown:
 
 - **That no accepted spend lacks the structure.** The audit is a search, not a proof. It covers
   single alterations exhaustively over the index range and combinations by sampling. A freedom
-  that needs a particular combination of several altered items can be missed. Final candidates
-  need a written argument ([VALIDATION.md](../../../spec/VALIDATION.md#final-candidates)).
+  that needs a particular combination of several altered items can be missed, and has been: a
+  late-pool script with no index clamp passed an earlier version of the audit
+  ([SECURITY-MODEL.md](SECURITY-MODEL.md), section 8). Final candidates need a written argument ([VALIDATION.md](../../../spec/VALIDATION.md#final-candidates)).
 - **That the production puzzles are solvable in practice.** Nobody grinds 2^40 here. The twin
   rule is the argument that the production script behaves as the test script does.
 - **Anything about relay, mining or fees.** These spends are non-standard (Binohash 8.2).
-- **Anything beyond BH-SEC-1's assumptions**, in particular A3.
+- **Anything beyond BH-SEC-2's assumptions**, in particular A3.
 
 ## 8. What the evaluator knows, and extending it
 

@@ -9,9 +9,10 @@ The unit of search is the **architecture**: how a script is organised, not how i
 are tuned. Each architecture keeps its own best instance on the board, so a new design is
 recorded before it is competitive and can be improved from there.
 
-**Status: staging.** The evaluator, the contract and a starting board of eleven instances are in
-place and recorded in the ledger, and a first search has been run against them
-([what it found](challenges/binohash/README.md#what-the-first-search-found)). The judge has
+**Status: staging.** The evaluator, the contract and a starting board of six instances are in
+place and recorded in the ledger. Two searches have been run against them; the second corrected
+the security model, which is now BH-SEC-2, and the board was recorded again
+([what they found](challenges/binohash/README.md#what-the-first-search-found)). The judge has
 not yet run on a submission, and numbers may be re-validated before the challenge goes live
 ([activation](data/site/activation.json)).
 

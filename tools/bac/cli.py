@@ -2,12 +2,14 @@
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 import json
 import os
 import pathlib
 import re
 import subprocess
 import sys
+import tempfile
 import time
 
 from . import check as repo_check
@@ -258,6 +260,30 @@ def evaluate_instance(challenge: Challenge, spec: str, extra: list[str]) -> dict
     return score
 
 
+def evaluate_many(challenge: Challenge, tasks: list[tuple[str, str, bytes, list[str]]], jobs: int) -> dict[str, dict]:
+    """Evaluate built instances side by side: `tasks` holds (name, spec, instance bytes, evaluator
+    arguments). Each runs the trusted evaluator on its own scratch directory. Returns the scores
+    by name; one refusal fails the lot."""
+    command = challenge.contract["evaluateCommand"]
+    env = {k: v for k, v in os.environ.items() if k != KEY_ENV}
+    env.setdefault("PYTHON", sys.executable)
+
+    def one(task) -> tuple[str, dict]:
+        name, spec, raw, extra = task
+        with tempfile.TemporaryDirectory() as scratch:
+            (pathlib.Path(scratch) / "instance.json").write_bytes(raw)
+            status = subprocess.run([*command, "--root", scratch, "--spec", spec, *extra], cwd=challenge.dir, env=env,
+                                    check=False, stdout=subprocess.DEVNULL).returncode
+            score = load_json(pathlib.Path(scratch) / challenge.contract["scorePath"])
+        if status != 0 or score.get("status") != "OK":
+            raise ContractError(f"{name}: the evaluator refused the instance: {score.get('stage_failed')}: {score.get('reason')}")
+        print(f"evaluated {name}", flush=True)
+        return name, score
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, jobs)) as pool:
+        return dict(pool.map(one, tasks))
+
+
 def cmd_genesis(args) -> int:
     """[maintainer] Validate the starting board with ledger-key seeds and record it.
 
@@ -276,6 +302,7 @@ def cmd_genesis(args) -> int:
     contract = load_json(contract_path)
     catalogue = load_json(challenge.dir / args.catalogue)
     recorded = 0
+    pending, tasks = [], []
     for candidate in catalogue["candidates"]:
         name = candidate["submission"]
         if any(r["submission"] == name for r in rows):
@@ -287,7 +314,12 @@ def cmd_genesis(args) -> int:
             raise ContractError(f"{name}: builds to {digest}, the catalogue says {candidate['instanceSha256']}")
         seed = ledger.derive_seed(key, digest)
         extra = ["--stage", "full", "--seed", seed] + (["--core", args.core] if args.core else [])
-        score = evaluate_instance(challenge, challenge.tracks[checked["track"]]["spec"], extra)
+        pending.append((candidate, checked, seed))
+        tasks.append((name, challenge.tracks[checked["track"]]["spec"], (challenge.dir / "instance.json").read_bytes(), extra))
+    scores = evaluate_many(challenge, tasks, args.jobs)
+    for candidate, checked, seed in pending:
+        name = candidate["submission"]
+        score = scores[name]
         row = ledger.row_from_score(
             score, track=challenge.tracks[checked["track"]], architecture=checked["architecture"], seed=seed,
             verifier=verifier.digest(challenge), unix_time=max(int(time.time()), int(rows[-1]["unix_time"]) if rows else 0),
@@ -320,6 +352,7 @@ def cmd_measure(args) -> int:
     path = challenge.dir / args.catalogue
     catalogue = load_json(path)
     current = verifier.digest(challenge)
+    pending, tasks = [], []
     for candidate in catalogue["candidates"]:
         if candidate.get("local", {}).get("verifierSha256") == current and not args.all:
             print(f"{candidate['submission']}: already measured by this evaluator")
@@ -328,9 +361,14 @@ def cmd_measure(args) -> int:
         checked = manifest.load(challenge, directory)
         track = challenge.tracks[checked["track"]]
         digest = build_instance(challenge, checked)
-        score = evaluate_instance(challenge, track["spec"], ["--stage", "full"] + (["--core", args.core] if args.core else []))
+        pending.append((candidate, checked, track, digest))
+        tasks.append((candidate["submission"], track["spec"], (challenge.dir / "instance.json").read_bytes(),
+                      ["--stage", "full"] + (["--core", args.core] if args.core else [])))
+    scores = evaluate_many(challenge, tasks, args.jobs)
+    for candidate, checked, track, digest in pending:
+        score = scores[candidate["submission"]]
         row = ledger.row_from_score(
-            score, track=track, architecture=checked["architecture"], seed=score["seed"], verifier=verifier.digest(challenge),
+            score, track=track, architecture=checked["architecture"], seed=score["seed"], verifier=current,
             unix_time=0, commit="", pr="", author="", model="", harness="", submission=candidate["submission"],
             kind="historical", note="",
         )
@@ -341,7 +379,7 @@ def cmd_measure(args) -> int:
         })
         print(f"{candidate['submission']}: {row['bytes']} bytes x {row['opcodes']} opcodes x 2^{row['work_bits']} "
               f"compressions = {row['score']}, {row['security_bits']} bits", flush=True)
-        path.write_text(json.dumps(catalogue, indent=1) + "\n", encoding="utf-8")
+    path.write_text(json.dumps(catalogue, indent=1) + "\n", encoding="utf-8")
     return 0
 
 
@@ -598,11 +636,13 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("challenge")
     p.add_argument("--catalogue", default="starting-board.json")
     p.add_argument("--core", default="", help="path to the Core comparison tool, relative to the challenge")
+    p.add_argument("--jobs", type=int, default=1, help="evaluations to run side by side")
     p.set_defaults(run=cmd_genesis)
     p = sub.add_parser("measure", help="[maintainer] measure the starting-board candidates on public lanes")
     p.add_argument("challenge")
     p.add_argument("--catalogue", default="starting-board.json")
     p.add_argument("--core", default="", help="path to the Core comparison tool, relative to the challenge")
+    p.add_argument("--jobs", type=int, default=1, help="evaluations to run side by side")
     p.add_argument("--all", action="store_true", help="measure again what this evaluator has already measured")
     p.set_defaults(run=cmd_measure)
     p = sub.add_parser("compare-row", help="[audit] check a fresh validation against a ledger row")

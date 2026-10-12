@@ -1,11 +1,13 @@
-# BH-SEC-1: the security level the challenge holds fixed
+# BH-SEC-2: the security level the challenge holds fixed
 
 Every track fixes a floor on one number, `security_bits`. This document defines that number.
-It is the accounting of the Binohash paper (Linus 2026, sections 4.6 and 5.3) with three
+It is the accounting of the Binohash paper (Linus 2026, sections 4.6 and 5.3) with four
 changes: puzzle work is counted exactly from the script; the attacker abandons a transaction as
-soon as one round has no solution; and rounds whose selection count does not match their
-puzzle are priced by the cheaper of two attacks. The implementation is
-[`evaluator/bh/model.py`](../evaluator/bh/model.py).
+soon as one round has no solution and may search only part of each round; rounds whose
+selection count does not match their puzzle are priced by the cheaper of two attacks; and no
+level is credited above the cost of defeating the pinning argument. The implementation is
+[`evaluator/bh/model.py`](../evaluator/bh/model.py). Section 8 lists what changed from BH-SEC-1
+and why.
 
 The number is a **claimed level under stated assumptions**. It is not a proof, and it is not a
 statement about any deployment. Section 6 lists the assumptions.
@@ -63,7 +65,7 @@ board; they are about two bits per puzzle below the paper's figures
 `d` must be disclosed in the instance and the evaluator checks `P = d*G`. A puzzle whose key
 has no disclosed discrete logarithm is not a puzzle the evaluator can count.
 
-## 4. The level: the cheaper of two attacks
+## 4. The level: the cheapest of three bounds
 
 Let `C_pin` be the cost of the cheapest pinning puzzle, `2^min(W_i)`, when pinning is credited
 (below), else 0. Let round `r` have `S_r` selections and a puzzle of `W_r` bits. For one pinned
@@ -77,15 +79,26 @@ every round therefore costs, per transaction,
 
     full = min over orders ( C_pin + S_{r1} + p_{r1} S_{r2} + p_{r1} p_{r2} S_{r3} + ... )
 
-**Attack 1: exhaustive birthday.** Pin `T` transactions and find every solution of each. Two
-transactions share a solved selection of round `r` in an expected `S_r q_r^2` ways, and a whole
-digest in the product over rounds. Over `T^2 / 2` pairs that reaches one at
-`T = prod_r 2^(W_r) / sqrt(S_r)`:
+**Attack 1: birthday over common subsets.** The attacker fixes, once, a subset of `s_r <= S_r`
+selections of each round and searches only those in every transaction. A round's subset holds
+a solution with probability `p_r(s_r) = 1 - exp(-s_r q_r)`, and a transaction costs
 
-    birthday = full * prod_r 2^(W_r) / sqrt(S_r)
+    cost(s) = min over orders ( C_pin + s_{r1} + p_{r1} s_{r2} + p_{r1} p_{r2} s_{r3} + ... )
 
-Searching only part of a round's selections never helps: it saves a factor in cost and loses
-its square in pairs.
+Two transactions share a solved selection of round `r` in an expected `s_r q_r^2` ways, and a
+whole digest in the product over rounds. Over `T^2 / 2` pairs that reaches one at
+`T = prod_r 2^(W_r) / sqrt(s_r)`:
+
+    birthday = min over s ( cost(s) * prod_r 2^(W_r) / sqrt(s_r) )
+
+Because every transaction searches the same subset, shrinking a round's subset by a factor `f`
+costs `sqrt(f)` in transactions and saves up to `f` in the cost of each. It pays whenever a
+round, not pinning, dominates the cost of a transaction: an oversized pool does not make the
+attacker's transactions dearer. With every subset full this is the exhaustive attack, and for
+`S = 2^W` rounds under `W`-bit pinning the full search is within a hundredth of a bit of the
+best. The evaluator minimises over subset sizes on a grid of 1/8 bit by coordinate descent
+from the full and from the empty search, for every order of the rounds. A finer or cleverer
+search can only find a lower level; a report of one is a soundness report.
 
 **Attack 2: stored digests.** Collect `N` digests, each from some transaction, then pin fresh
 transactions and test the stored digests on them: one evaluation per test, success
@@ -97,12 +110,22 @@ transactions:
 with `N >= 1` chosen to minimise it, and `per_digest` the cheaper of finding digests by full
 search (`full / prod_r lambda_r`) or by stopping at each round's first solution.
 
-    security_bits = log2( min(birthday, stored) )
+**The pinning cap.** Pinning is credited (below) because four puzzles with disjoint targets
+force four sighash modes. That holds only while one signature mode cannot serve two of the
+puzzles, which costs `2^(W_a + W_b)` for the two cheapest (assumption A2), once and not per
+transaction. What an attacker gains by it depends on the downstream verifier, and the model
+does not price it. It refuses to credit a level above it:
+
+    security_bits = min( log2( min(birthday, stored) ),  W_a + W_b )
+
+With no pinning puzzles there is no cap and `C_pin = 0`.
 
 **Relation to the paper.** For one round with `S = 2^W`, `birthday` is section 4.6 exactly. For
 two rounds it is section 5.3 except that the paper charges both rounds to every transaction,
 while an attacker skips the second round when the first has no solution; with `S = 2^W` that
-is 0.19 bits. The paper writes the digest size as `min(E, W)`; this model replaces that with
+is 0.19 bits. The paper's standard configuration pins with 5-byte puzzles: its rounds are
+worth 81.52 bits here and the cap is 80.01, so that is its level. Its 6-byte-pinning variant
+is capped at 96.01 and stands at 88.41. The paper writes the digest size as `min(E, W)`; this model replaces that with
 the two counts above. They differ from it in both directions when `S_r` and `2^W_r` differ:
 
 - Fewer selections than the puzzle is hard: a pinned transaction often has no digest. The
@@ -132,7 +155,7 @@ the evaluator:
 
 An instance with no pinning puzzles is valid and has `C_pin = 0`.
 
-**What the model may still miss.** It considers two attack families. A hybrid that beats both
+**What the model may still miss.** It considers two attack families and one cap. A hybrid that beats both
 on some shape of instance would be a finding about the model: report it
 ([SECURITY.md](../../../SECURITY.md)).
 
@@ -158,7 +181,7 @@ on some shape of instance would be a finding about the model: report it
 | | Assumption | Source |
 | --- | --- | --- |
 | A1 | No signature nonce with an x-coordinate shorter than `r_min` is known, and none with a comparably short one besides `±(1/2)G`. | Binohash 2.1.3 (about 2^96 work to find one). A quantum adversary breaks this outright; see the paper and QSB. |
-| A2 | Working 2^(2W) to satisfy two puzzles with one signature mode is infeasible. | Binohash 3.1 |
+| A2 | Working 2^(W_a + W_b) to satisfy two pinning puzzles with one signature mode is the cheapest way around pinning. The level is capped there (section 4). | Binohash 3.1 |
 | A3 | The downstream verifier inspects the spend and rejects any round signature whose hash type is not `SIGHASH_ALL` (0x01). Without it, a round signature under `ANYONECANPAY\|NONE` commits to almost nothing and the level collapses to one round's work. | Binohash 7.1 |
 | A4 | Changing a pinned transaction costs at least one pinning puzzle. | Binohash 5.3 |
 | A5 | SHA-256 behaves as a random function of the sighash preimage. | |
@@ -169,6 +192,9 @@ Outside the model, by choice:
   each gives a different sighash, which gives the on-chain half of a collision up to 8 bits per
   spender signature. The paper prices this at under one bit for its configuration. It is not
   in `security_bits`; a design that changes how much it matters should say so in its notes.
+  An open question from the first search: a two-sided birthday estimate puts it near 4 bits
+  per round beyond the first, which would favour two-round designs over three-round ones at
+  equal `security_bits`. The two figures have not been reconciled.
 - **Second-preimage resistance against a third party.** The paper's threat model is collision
   resistance against the spender; so is this one.
 - **Quantum adversaries.** A1 fails. That is the subject of QSB, not of this challenge.
@@ -180,3 +206,23 @@ pinning argument, a relaxed rule of section 5 or a different formula is a new co
 ([VALIDATION.md](../../../spec/VALIDATION.md)), proposed in Discussions with the prefix
 `[Contract]`. A report that the model overstates the level of an instance it accepts is a
 soundness report: use [SECURITY.md](../../../SECURITY.md).
+
+## 8. What changed from BH-SEC-1
+
+Three findings of the first agent search, each kept as a regression test in
+`tests/test_model.py` or `tests/test_evaluator.py`:
+
+- **Partial search.** BH-SEC-1 said searching part of a round never helps, on the argument that
+  it saves a factor in cost and loses its square in pairs. That is true of independent random
+  subsets. With one common subset the loss is the factor itself. Two instances recorded on the
+  first board at 81.52 and 81.55 bits were worth 81.04 and 81.03.
+- **The pinning cap.** BH-SEC-1 credited four-mode pinning at any puzzle size. A design with
+  4-byte pinning puzzles and three rounds was priced at 81.5 bits although one signature mode
+  serves two of its puzzles for 2^64 work.
+- **The audit's spender** can set an unlocking item to the hash of a script constant, can alter
+  several items of different kinds at once, and plants signatures short enough to fit under the
+  largest pools. A late-pool script with no index clamp at all passed the old audit; it lets a
+  round take a signature the previous round did not select.
+
+The standard track's floor moved from 81.5 to 80.0 with the cap, since the paper's standard
+configuration is the reference for that track. The board was re-recorded under the new model.

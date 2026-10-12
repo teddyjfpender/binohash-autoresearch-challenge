@@ -15,11 +15,11 @@
     "opcodes": 199,
     "workBits": "46.740",
     "score": "198865939.813",
-    "securityBits": "81.521",
+    "securityBits": "80.011",
     "lanes": 48,
     "engine": "reference-48+core-20",
     "seedKind": "public",
-    "verifierSha256": "91fc2f1a24779590454f909380de2a69d056d204ae74670dd934de0f60eade52"
+    "verifierSha256": "c2d601fc9a4953b781c6599130ca1b89fa5c90bcfad1d771fd7059b34b78cdb0"
    }
   },
   {
@@ -38,7 +38,7 @@
     "lanes": 48,
     "engine": "reference-48+core-20",
     "seedKind": "public",
-    "verifierSha256": "91fc2f1a24779590454f909380de2a69d056d204ae74670dd934de0f60eade52"
+    "verifierSha256": "c2d601fc9a4953b781c6599130ca1b89fa5c90bcfad1d771fd7059b34b78cdb0"
    }
   },
   {
@@ -53,49 +53,11 @@
     "opcodes": 199,
     "workBits": "46.081",
     "score": "125190800.722",
-    "securityBits": "81.521",
+    "securityBits": "80.011",
     "lanes": 48,
     "engine": "reference-48+core-20",
     "seedKind": "public",
-    "verifierSha256": "91fc2f1a24779590454f909380de2a69d056d204ae74670dd934de0f60eade52"
-   }
-  },
-  {
-   "id": "standard-late-pools-120-172",
-   "track": "standard",
-   "spec": "bh1-standard",
-   "role": "candidate",
-   "submission": "standard/late-pools-120-172",
-   "instanceSha256": "2321ec2c0d69dd8911fbb3afcb52743592928af088e8763c13c79f01e034ae46",
-   "local": {
-    "bytes": 10929,
-    "opcodes": 199,
-    "workBits": "45.777",
-    "score": "119256974.512",
-    "securityBits": "81.524",
-    "lanes": 48,
-    "engine": "reference-48+core-20",
-    "seedKind": "public",
-    "verifierSha256": "91fc2f1a24779590454f909380de2a69d056d204ae74670dd934de0f60eade52"
-   }
-  },
-  {
-   "id": "standard-late-pools-108-120",
-   "track": "standard",
-   "spec": "bh1-standard",
-   "role": "candidate",
-   "submission": "standard/late-pools-108-120",
-   "instanceSha256": "9fd208eb9b81f115019c8343997430d77d6ce5302ba794faa543db10a032daa7",
-   "local": {
-    "bytes": 8921,
-    "opcodes": 199,
-    "workBits": "46.244",
-    "score": "134554401.460",
-    "securityBits": "81.643",
-    "lanes": 48,
-    "engine": "reference-48+core-20",
-    "seedKind": "public",
-    "verifierSha256": "91fc2f1a24779590454f909380de2a69d056d204ae74670dd934de0f60eade52"
+    "verifierSha256": "c2d601fc9a4953b781c6599130ca1b89fa5c90bcfad1d771fd7059b34b78cdb0"
    }
   },
   {
@@ -114,26 +76,7 @@
     "lanes": 48,
     "engine": "reference-48+core-20",
     "seedKind": "public",
-    "verifierSha256": "91fc2f1a24779590454f909380de2a69d056d204ae74670dd934de0f60eade52"
-   }
-  },
-  {
-   "id": "high-late-round48",
-   "track": "high",
-   "spec": "bh1-high",
-   "role": "candidate",
-   "submission": "high/late-round48",
-   "instanceSha256": "0be547ceb0f63b1b55d3d3e866799317ee0cb7dc5db5287b283fa1c66506455f",
-   "local": {
-    "bytes": 10634,
-    "opcodes": 199,
-    "workBits": "51.423",
-    "score": "5810524983.448",
-    "securityBits": "89.231",
-    "lanes": 48,
-    "engine": "reference-48+core-20",
-    "seedKind": "public",
-    "verifierSha256": "91fc2f1a24779590454f909380de2a69d056d204ae74670dd934de0f60eade52"
+    "verifierSha256": "c2d601fc9a4953b781c6599130ca1b89fa5c90bcfad1d771fd7059b34b78cdb0"
    }
   },
   {
@@ -148,49 +91,11 @@
     "opcodes": 191,
     "workBits": "46.121",
     "score": "123217063.034",
-    "securityBits": "81.521",
+    "securityBits": "80.011",
     "lanes": 48,
     "engine": "reference-48+core-20",
     "seedKind": "public",
-    "verifierSha256": "91fc2f1a24779590454f909380de2a69d056d204ae74670dd934de0f60eade52"
-   }
-  },
-  {
-   "id": "standard-late-unclamped-116-128",
-   "role": "candidate",
-   "submission": "standard/late-unclamped-116-128",
-   "track": "standard",
-   "spec": "bh1-standard",
-   "instanceSha256": "2e526708a71c061d569bc9e9c05116470a206c0aa8915625fda0496ce7ae3d14",
-   "local": {
-    "bytes": 9477,
-    "opcodes": 201,
-    "workBits": "45.757",
-    "score": "103014088.255",
-    "securityBits": "81.546",
-    "lanes": 48,
-    "engine": "reference-48+core-20",
-    "seedKind": "public",
-    "verifierSha256": "91fc2f1a24779590454f909380de2a69d056d204ae74670dd934de0f60eade52"
-   }
-  },
-  {
-   "id": "standard-late-unclamped-104-88",
-   "role": "candidate",
-   "submission": "standard/late-unclamped-104-88",
-   "track": "standard",
-   "spec": "bh1-standard",
-   "instanceSha256": "a46b27044185851c1f83dde2a3bccd24c351c07fec815f65205600f58c44a45c",
-   "local": {
-    "bytes": 7854,
-    "opcodes": 201,
-    "workBits": "46.559",
-    "score": "148847894.541",
-    "securityBits": "81.959",
-    "lanes": 48,
-    "engine": "reference-48+core-20",
-    "seedKind": "public",
-    "verifierSha256": "91fc2f1a24779590454f909380de2a69d056d204ae74670dd934de0f60eade52"
+    "verifierSha256": "c2d601fc9a4953b781c6599130ca1b89fa5c90bcfad1d771fd7059b34b78cdb0"
    }
   },
   {
@@ -209,7 +114,7 @@
     "lanes": 48,
     "engine": "reference-48+core-20",
     "seedKind": "public",
-    "verifierSha256": "91fc2f1a24779590454f909380de2a69d056d204ae74670dd934de0f60eade52"
+    "verifierSha256": "c2d601fc9a4953b781c6599130ca1b89fa5c90bcfad1d771fd7059b34b78cdb0"
    }
   }
  ]

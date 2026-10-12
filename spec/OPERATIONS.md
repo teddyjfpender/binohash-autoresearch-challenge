@@ -31,7 +31,9 @@ For maintainers.
    validates it in full under a ledger-key seed, appends the signed `historical` rows, switches
    the tracks' pending baselines to those rows and rebuilds the site feed. Commit
    `results.tsv`, `benchmark.json` and `data/site`. It runs builder code through
-   `benchmark.sh`, sandboxed where a sandbox exists; run it on Linux.
+   `benchmark.sh`, sandboxed where a sandbox exists; run it on Linux. `--jobs N` evaluates `N`
+   instances side by side, each in its own scratch directory; `challenge.py measure`, which
+   fills in the catalogue's public-lane measurements, takes the same option.
 
 ## Routine
 

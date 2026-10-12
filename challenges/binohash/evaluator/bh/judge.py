@@ -374,6 +374,13 @@ class Judge:
             for i in rng.sample(len(indexes), min(len(indexes), 2 + rng.below(3))):
                 items[indexes[i]] = S.num_encode(rng.below(peak + 3) - 1)
             attempt(items, "changes several indexes")
+        # Three or four items of any kind at once: an index takes another value, anything else is
+        # replaced by a copy of another item. A missing check may need its neighbours moved too.
+        for _ in range(validation["multiSlotMutants"] if len(honest) > 3 else 0):
+            items = list(honest)
+            for i in rng.sample(len(honest), 3 + rng.below(2)):
+                items[i] = S.num_encode(rng.below(peak + 3) - 1) if kinds[i] == "index" else honest[rng.below(len(honest))]
+            attempt(items, "alters several witness items")
         # Items exchanged, dropped, repeated.
         for _ in range(validation["swapMutants"]):
             a, b = rng.sample(len(honest), 2) if len(honest) > 1 else (0, 0)
@@ -401,11 +408,19 @@ class Judge:
                 attempt(swapped(i, b""), f"empties the signature in witness item {i}")
         # Items planted beneath the honest ones, for an index that reaches past its pool.
         # The pad is deeper than any pool, so a signature and its commitment can both come from it.
-        plant = _placeholder(inst.rounds[0].puzzle.test.size, 0x01)
-        depth = max(0, min(max(rnd.n for rnd in inst.rounds) + validation["plantedMargin"], S.MAX_STACK - peak - 1))
+        # Planted signatures are the shortest there are, so the pad fits the 10,000-byte limit of an
+        # unlocking script even under the largest pools.
+        plant = bytes.fromhex("300602010102010101")
+        room = (S.MAX_SCRIPT_BYTES - sum(len(S.push(i)) for i in honest) - 8) // len(S.push(plant))
+        depth = max(0, min(max(rnd.n for rnd in inst.rounds) + validation["plantedMargin"], S.MAX_STACK - peak - 1, room))
         for i in indexes:
             for value in range(peak + depth + 2):
                 attempt([plant] * depth + swapped(i, S.num_encode(value)), f"plants {depth} signatures under the witness and sets item {depth + i} to {value}")
+        for _ in range(validation["multiSlotMutants"] if depth else 0):
+            items = list(honest)
+            for i in rng.sample(len(indexes), min(len(indexes), 2 + rng.below(3))):
+                items[indexes[i]] = S.num_encode(rng.below(peak + depth + 2))
+            attempt([plant] * depth + items, f"plants {depth} signatures under the witness and changes several indexes")
         # A puzzle signature of the right size that signs nothing: refused for real, not only in the oracle.
         for i, item in enumerate(inst.witness):
             if item[0] == "puzzle":
@@ -513,7 +528,8 @@ class Judge:
         self.metrics = {
             "bytes": locking + unlocking, "locking_bytes": locking, "unlocking_bytes": unlocking,
             "opcodes": self.ops, "stack_peak": self.peak, "work_bits": work["bits"],
-            "security_bits": security_bits(pin_bits, [(space, bits) for space, bits, _ in rounds]),
+            "security_bits": security_bits([p.prod.bits for p in inst.pins] if inst.pins else None,
+                                           [(space, bits) for space, bits, _ in rounds]),
             "pin_bits": pin_bits, "pins": pin_rows, "rounds": round_rows,
             "work": {k: v for k, v in work.items() if k != "bits"},
         }

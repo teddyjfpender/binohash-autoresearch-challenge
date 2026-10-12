@@ -31,13 +31,18 @@ Score 8,910,950,604 against 9,033,284,929: 1.4% lower. The rounds were under 1% 
 before the change and are less after it. The work is three 48-bit pinning puzzles once and the
 fourth for each of 3.5 transactions tried: 2^52.2.
 
-A search over pool sizes with 6-byte pinning found nothing better than equal pools of 120: with
-pinning this expensive, more selections lower the level almost bit for bit.
+A search over pool sizes with 6-byte pinning, run under the old model BH-SEC-1, found nothing
+better than equal pools of 120: with pinning this expensive, more selections lower the level,
+by half a bit for each doubling of a round's selection count. BH-SEC-2 gives this instance the
+same level, 88.411; the search has not been run again under it.
 
 ## Result and next steps
 
-Everything on the board is at or below the baseline with this layout, so it is the one to build
-on. The work on this track is the pinning puzzles; `late-round48` moves it.
+Every count is at or below the baseline's with this layout, so it is the one to build on. The
+work on this track is the pinning puzzles. Moving the 48 bits into a round and pinning with
+5-byte puzzles was tried under the old model BH-SEC-1 (`late-round48`, since removed from the
+board): BH-SEC-2 caps such a design at 80.011 bits, the work of two 5-byte pinning puzzles,
+which is below this track's floor of 88.4. The level here, 88.411, is under its cap of 96.011.
 
 ## Attribution
 

@@ -28,21 +28,21 @@
   "fixed": {
    "id": "securityBits",
    "label": "Claimed security level",
-   "unit": "bits, model BH-SEC-1"
+   "unit": "bits, model BH-SEC-2"
   }
  },
  "tracks": [
   {
    "id": "standard",
    "name": "Standard",
-   "headline": "At least 81.5 bits",
-   "summary": "The level of the paper's 5-byte configuration, two rounds of 120-choose-8, as the evaluator counts it."
+   "headline": "At least 80.0 bits",
+   "summary": "The level of the paper's 5-byte configuration, two rounds of 120-choose-8, as the evaluator counts it: 80.01 bits, the cap set by its 5-byte pinning puzzles."
   },
   {
    "id": "high",
    "name": "High",
    "headline": "At least 88.4 bits",
-   "summary": "The level of the paper's 6-byte pinning configuration, as the evaluator counts it."
+   "summary": "The level of the paper's 6-byte pinning configuration, as the evaluator counts it: 88.41 bits. 6-byte pinning is needed in practice."
   }
  ],
  "levels": [
@@ -57,7 +57,7 @@
    "description": "One script within an architecture: its pool sizes, puzzle sizes, rounds and layout."
   }
  ],
- "standard": "Collision resistance under the model BH-SEC-1: the accounting of the Binohash paper with puzzle work counted exactly by the evaluator and an attacker who abandons unpromising transactions. A claimed level under stated assumptions, supported by an audit; not a proof.",
+ "standard": "Collision resistance under the model BH-SEC-2: the accounting of the Binohash paper with puzzle work counted exactly by the evaluator, an attacker who abandons unpromising transactions and may search part of each round, and a cap at the cost of getting around the pinning puzzles. A claimed level under stated assumptions, supported by an audit; not a proof.",
  "rules": [
   "Only the builders under challenges/binohash/builders may change.",
   "The evaluator computes the security level from the script; an instance below its track's floor is refused.",

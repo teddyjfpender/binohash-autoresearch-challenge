@@ -17,9 +17,10 @@ Two things are added for the judge and change no verdict:
   the signature or the public key, which is what a spender who grinds and recovers keys can
   arrange. A check whose signature and key are both constants of the locking script is still
   verified for real. An equality check passes when both operands come from the unlocking
-  script (an item, its hash or its size), because the spender chooses both, and when a hash of
-  an unlocking item is compared with a commitment the caller lists as openable, because the
-  spender of an instance knows every preimage. Encoding rules always apply.
+  script (an item, its hash or its size), because the spender chooses both; when one operand is
+  an unlocking item itself, because the spender can set it to whatever the other side works out
+  to; and when a hash of an unlocking item is compared with a commitment the caller lists as
+  openable, because the spender of an instance knows every preimage. Encoding rules always apply.
 """
 from __future__ import annotations
 
@@ -77,6 +78,10 @@ class _Machine:
     def satisfiable(self, a, b) -> bool:
         """An equality the spender can arrange whatever the honest values are."""
         if controlled(a) and controlled(b):
+            return True
+        # An unlocking item itself can be set to whatever the other side evaluates to, a hash of a
+        # script constant included. (Its hash or its size cannot: that would need a preimage.)
+        if any(tag is not None and tag[0] == "w" for tag in (a, b)):
             return True
         return any(x in self.openable and y is not None and y[0] == "h" and controlled(y) for x, y in ((a, b), (b, a)))
 

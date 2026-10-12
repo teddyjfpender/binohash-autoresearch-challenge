@@ -6,7 +6,7 @@
   {
    "name": "Trusted evaluator with tests that require it to refuse seeded defects",
    "status": "done",
-   "evidence": "challenges/binohash/evaluator, challenges/binohash/tests/test_evaluator.py: thirteen defects, each refused at its stage"
+   "evidence": "challenges/binohash/evaluator, challenges/binohash/tests/test_evaluator.py: fourteen defects, each refused at its stage"
   },
   {
    "name": "Reference engine agrees with Bitcoin Core's consensus library on pinned spends",
@@ -21,12 +21,12 @@
   {
    "name": "Parameter search run against the security and work models before opening",
    "status": "done",
-   "evidence": "challenges/binohash/README.md (what the first search found): four corrections to the judge, each with a regression test; nine instances added to the starting board"
+   "evidence": "challenges/binohash/README.md (what the first search found): four corrections to the judge from a parameter search and three from an agent search against the first board, each with a regression test; the board was re-recorded under BH-SEC-2 with six instances"
   },
   {
    "name": "Starting board validated by the judge pipeline with ledger-key seeds",
    "status": "done",
-   "evidence": "challenges/binohash/results.tsv (kind = historical): eleven instances validated at the full stage with ledger-key seeds and the Core comparison; the rows were assembled on a maintainer's machine, not by the hosted judge"
+   "evidence": "challenges/binohash/results.tsv (kind = historical): six instances validated at the full stage with ledger-key seeds and the Core comparison; the rows were assembled on a maintainer's machine, not by the hosted judge"
   },
   {
    "name": "Judge workflow: sandboxed build, trusted evaluation, signed ledger rows",
@@ -39,7 +39,7 @@
    "evidence": "spec/ROADMAP.md"
   },
   {
-   "name": "Independent review of the security model BH-SEC-1",
+   "name": "Independent review of the security model BH-SEC-2",
    "status": "pending",
    "evidence": "challenges/binohash/spec/SECURITY-MODEL.md, spec/ROADMAP.md"
   },

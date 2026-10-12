@@ -38,7 +38,7 @@ Counted by the evaluator on public lanes (`python3 challenge.py run`):
 | Locking script | 8,101 bytes | 8,028 bytes |
 | Unlocking script | 1,248 bytes | not stated |
 | Puzzle work per signature | 40.006 bits | 42 bits |
-| Security (BH-SEC-1) | 81.521 bits | about 84 bits |
+| Security (BH-SEC-2) | 80.011 bits | about 84 bits |
 | Honest work | 2^46.740 compressions | 2^44.6 sighash evaluations |
 
 Differences from the paper, all explained in `spec/SECURITY-MODEL.md` and `spec/WORK-MODEL.md`:
@@ -51,6 +51,10 @@ Differences from the paper, all explained in `spec/SECURITY-MODEL.md` and `spec/
   tries 3.5 transactions on average, solving one pinning puzzle again for each. The attacker
   profits from the same thing: a transaction whose first round has no solution is abandoned,
   which is 0.2 bits of the gap to the paper's figure.
+- The level is the pinning cap, not what the rounds are worth. The rounds alone come to 81.521
+  bits. Four pinning puzzles force four sighash modes only while one signature mode cannot
+  serve two of them, which costs the work of two puzzles, 80.011 bits. BH-SEC-2
+  credits no level above that, so this configuration counts as 80.011.
 - A round-0 attempt hashes 71 SHA-256 blocks and a round-1 attempt 9, because round 1's pool sits
   later in the script and more of the preimage is a fixed prefix.
 
@@ -62,7 +66,9 @@ key; rolling the deepest remaining key keeps one constant, as the paper's listin
 The numbers above. Obvious directions for a first improvement: the 71-block round-0 attempts
 dominate the work and are a property of the layout, not of the construction; the selection loop
 is nine counted operations per element; and the pool size could be chosen so that a round more
-often has a solution, at a cost in bytes and in security bits that the track's floor limits.
+often has a solution, at a cost in bytes. The floor of this track is 80.0 bits and the rounds
+have 1.5 bits to spare above it, so that trade is open as long as the rounds stay worth at
+least the floor; the level itself stays at the cap.
 
 ## Attribution
 
