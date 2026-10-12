@@ -133,10 +133,9 @@ What did not work:
 
 - **5-byte pinning.** Capped at 80.011 bits, below the floor. This is the track's known negative
   result and the reason this is a separate instance.
-- **Other pools and selection counts.** A hill-climb with real builds from these pools (one step
-  in `n` or in `t` of a round, and moving a selection from one round to another) found no lower
-  score at or above the floor.
-- **Round puzzles of 4,4,4 bytes.** The best point that climb found was 105:6, 104:6, 91:7 at
+- **Other pools and selection counts.** A hill-climb with real builds over pool sizes and
+  selection counts, started from these pools, found no lower score.
+- **Round puzzles of 4,4,4 bytes.** The best point such a climb found was 105:6, 104:6, 91:7 at
   11,387 bytes and 2^53.540 compressions, a score of about 27.3 billion: 4.5 times this one.
   The scarcer rounds cost retries at 2^48 each.
 
