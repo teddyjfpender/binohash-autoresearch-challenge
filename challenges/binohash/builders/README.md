@@ -30,6 +30,7 @@ def build(knobs: dict[str, str]) -> dict: ...   # a bh-instance-v1 object
 | --- | --- | --- |
 | `paper` | [`paper.py`](paper.py) | The paper's construction: Appendix A pinning, Appendix B rounds. |
 | `late` | [`late.py`](late.py) | The same construction with every commitment table first and each pool directly before its loop, round 0 last. Fewer compressions per grinding attempt. |
+| `pairs` | [`pairs.py`](pairs.py) | Architecture `paired-table`: one table of adjacent (signature, commitment) pairs per round, a selection as `ROLL DUP PICK ROLL HASH160 EQUALVERIFY ROLL`, a height marker under every table but the first. `13 + sum(9 t + 5) + rounds - 1` operations. Knobs: `BINO_ROUNDS` (script order, default `100:6,100:6,100:7`), `BINO_PIN_BYTES` (default 4, which the pinning cap prices at 64 bits; a submission sets 5 or more), `BINO_ROUND_BYTES` (4 each), `BINO_MARKERS` (`later` or `all`). |
 
 ### Knobs of `paper` and `late`
 

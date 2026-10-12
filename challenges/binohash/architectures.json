@@ -12,6 +12,17 @@
     "R. Linus, Binohash: Transaction Introspection Without Softforks (2026), sections 3 to 6 and appendices A and B",
     "L. Reyzin and N. Reyzin, Better than BiBa: Short One-Time Signatures with Fast Signing and Verifying, ACISP 2002"
    ]
+  },
+  {
+   "id": "paired-table",
+   "name": "Paired table with height markers",
+   "mechanism": "Pinning is the paper's (Appendix A). Each round pushes one table in which every pool signature is followed directly by its own HASH160 commitment, so on the stack an element's commitment lies exactly one item above its signature. The unlocking script is consumed strictly from its top by constant-depth rolls. For each selection the script rolls up one index k, copies the commitment with DUP PICK (the item k-1 below, the index still being on the stack), checks a revealed preimage against the copy, and takes the signature with ROLL (the item k below, the index now gone): the same index reaches both members of a pair without a clamp or an addition, seven operations per selection and nine with its key. Unselected commitments are never moved, so the item directly above a pool signature is always its own commitment. Every round but the first keeps its puzzle's size constant under its table and fetches it by a constant-depth PICK for the puzzle's size check: any roll that took an item from below the table leaves one item more above that constant than the PICK assumes, and the size check then compares the signature's size with a table element and fails. The t selected signatures and the size-checked puzzle signature are verified by one (t+1)-of-(t+1) OP_CHECKMULTISIG per round.",
+   "distinguishing": "One table of adjacent (signature, commitment) pairs per round instead of two tables; a selection is one index used by OP_PICK and OP_ROLL at depths that differ by construction, not an index walked through OP_ROLL once per table with arithmetic between; out-of-pool selections are excluded by adjacency and by one height check per round, not by a clamp per selection. Without the pairing an instance would be a rolled-subset instance.",
+   "parent": "rolled-subset",
+   "references": [
+    "R. Linus, Binohash: Transaction Introspection Without Softforks (2026), sections 3 to 6 and appendices A and B",
+    "L. Reyzin and N. Reyzin, Better than BiBa: Short One-Time Signatures with Fast Signing and Verifying, ACISP 2002"
+   ]
   }
  ]
 }
