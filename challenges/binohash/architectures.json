@@ -1,0 +1,17 @@
+{
+ "schema": "bac-architectures-v1",
+ "challenge": "binohash",
+ "axis": "How a round's selection is made, bound to its one-time commitments and tied to the puzzle signature.",
+ "architectures": [
+  {
+   "id": "rolled-subset",
+   "name": "Rolled subsets with separate commitments",
+   "mechanism": "The construction of the Binohash paper. Pinning is four signature-size puzzles under keys with disjoint sighash targets, after a hardcoded SIGHASH_SINGLE signature that forces the SIGHASH_SINGLE bug (Appendix A). Each round pushes its own pool of n nine-byte signatures and, separately, n HASH160 commitments. The unlocking script supplies t indexes; for each, the script rolls the index up, clamps it, rolls out the commitment at that rank, checks a revealed preimage against it, and rolls out the signature at the same rank. The t selected signatures and the size-checked puzzle signature are verified by one (t+1)-of-(t+1) OP_CHECKMULTISIG whose FindAndDelete removes the selection from the scriptCode (Appendix B).",
+   "distinguishing": "Signatures and commitments are two separate tables on the stack, a selection is an index walked through OP_ROLL once per table, and every round has a pool, a commitment table and a multisig of its own. The cost per selected element is fixed stack choreography; the cost per pool element is a signature push plus a commitment push.",
+   "references": [
+    "R. Linus, Binohash: Transaction Introspection Without Softforks (2026), sections 3 to 6 and appendices A and B",
+    "L. Reyzin and N. Reyzin, Better than BiBa: Short One-Time Signatures with Fast Signing and Verifying, ACISP 2002"
+   ]
+  }
+ ]
+}

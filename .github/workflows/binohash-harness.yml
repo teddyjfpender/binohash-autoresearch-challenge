@@ -1,0 +1,61 @@
+name: Binohash harness
+
+# The Binohash challenge's own tests: the reference engine, the models, every defect the
+# evaluator must refuse, the byte-identity of recorded instances, and the comparison of the
+# pinned spends with Bitcoin Core's consensus library. Submission pull requests are judged by
+# judge.yml instead; this workflow does not run for changes confined to builders or submissions,
+# so it never executes unreviewed builder code from a pull request.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "challenges/binohash/**"
+      - "!challenges/binohash/results.tsv"
+      - "!challenges/binohash/submissions/**"
+      - "!challenges/binohash/**/*.md"
+      - ".github/workflows/binohash-harness.yml"
+  pull_request:
+    paths:
+      - "challenges/binohash/evaluator/**"
+      - "challenges/binohash/specs/**"
+      - "challenges/binohash/tests/**"
+      - "challenges/binohash/tools/**"
+      - "challenges/binohash/*.sh"
+      - ".github/workflows/binohash-harness.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: binohash-harness-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        python: ["3.10", "3.12"]
+    defaults:
+      run:
+        working-directory: challenges/binohash
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Engine, model and evaluator tests
+        run: python3 -I -B -m unittest discover -s tests -v -p 'test_[cme]*.py'
+      - name: Recorded instances rebuild byte for byte (sandboxed)
+        run: |
+          ./setup.sh
+          tools/ci/pins_sandboxed.sh
+      - name: Pinned spends through Bitcoin Core
+        run: |
+          cargo build --release --locked --manifest-path tools/core/Cargo.toml
+          tools/core/target/release/cchk < tests/data/core-vectors.txt
+      - name: Baseline, screen stage, with the Core comparison
+        run: ./benchmark.sh --stage screen --core tools/core/target/release/cchk

@@ -1,0 +1,46 @@
+title: "[Idea] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Share one falsifiable hypothesis. Read the challenge's TASK.md and spec/SCORING.md first. Do not post credentials or private paths.
+  - type: dropdown
+    id: level
+    attributes:
+      label: Level
+      description: A new architecture changes how the script is organised. A refinement tunes an existing one.
+      options:
+        - New architecture
+        - Recombination of existing architectures
+        - Refinement within an architecture
+        - Lower bound or impossibility argument
+    validations:
+      required: true
+  - type: input
+    id: scope
+    attributes:
+      label: Challenge, track and architecture
+      placeholder: binohash / standard / rolled-subset
+    validations:
+      required: true
+  - type: textarea
+    id: bottleneck
+    attributes:
+      label: Observed bottleneck
+      description: Which part of the script or of the grind sets the bytes, the opcodes or the work, with numbers from a recorded instance.
+    validations:
+      required: true
+  - type: textarea
+    id: mechanism
+    attributes:
+      label: Mechanism and prediction
+      description: What changes, the counts you expect it to move, and why the security level does not move.
+    validations:
+      required: true
+  - type: textarea
+    id: falsification
+    attributes:
+      label: Cheapest falsifying check
+      description: The smallest build or count that would show the idea does not pay or is unsound.
+    validations:
+      required: true

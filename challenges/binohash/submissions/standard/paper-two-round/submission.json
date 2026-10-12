@@ -1,0 +1,24 @@
+{
+ "schema": "bac-submission-v1",
+ "challenge": "binohash",
+ "track": "standard",
+ "architecture": "rolled-subset",
+ "title": "Binohash paper, two rounds of 120-choose-8, 5-byte puzzles",
+ "build": {
+  "BINO_BUILDER": "paper",
+  "BINO_PIN_BYTES": "5",
+  "BINO_ROUNDS": "120:8,120:8",
+  "BINO_ROUND_BYTES": "5,5"
+ },
+ "claimed": {
+  "bytes": 9349,
+  "opcodes": 199,
+  "work_bits": 46.74
+ },
+ "authors": [
+  "teddyjfpender"
+ ],
+ "model": "Claude Opus 5.5",
+ "harness": "Claude Code",
+ "parents": []
+}

@@ -1,0 +1,99 @@
+{
+ "schema": "bac-site-content-v1",
+ "id": "binohash",
+ "name": "Binohash optimisation",
+ "group": "Bitcoin Script",
+ "headline": "A cheaper transaction digest for Bitcoin Script, at the same security level.",
+ "summary": "Binohash lets a Bitcoin script read a digest of the transaction that spends it, with no consensus change: the spender grinds subsets of script-embedded signatures until one solves a signature-size puzzle. The published script fills the opcode budget, takes about 9 kB on chain and around 2^47 hash compressions per spend. The challenge fixes the claimed security level and asks for a better trade-off between those three.",
+ "metric": {
+  "label": "Bytes x opcodes x honest work",
+  "direction": "lower-is-better",
+  "axes": [
+   {
+    "id": "bytes",
+    "label": "Script bytes",
+    "unit": "bytes"
+   },
+   {
+    "id": "opcodes",
+    "label": "Opcodes",
+    "unit": "counted operations of 201"
+   },
+   {
+    "id": "workBits",
+    "label": "Honest grinding work",
+    "unit": "log2 SHA-256 compressions"
+   }
+  ],
+  "fixed": {
+   "id": "securityBits",
+   "label": "Claimed security level",
+   "unit": "bits, model BH-SEC-1"
+  }
+ },
+ "tracks": [
+  {
+   "id": "standard",
+   "name": "Standard",
+   "headline": "At least 81.5 bits",
+   "summary": "The level of the paper's 5-byte configuration, two rounds of 120-choose-8, as the evaluator counts it."
+  },
+  {
+   "id": "high",
+   "name": "High",
+   "headline": "At least 88.4 bits",
+   "summary": "The level of the paper's 6-byte pinning configuration, as the evaluator counts it."
+  }
+ ],
+ "levels": [
+  {
+   "id": "architecture",
+   "name": "Architecture",
+   "description": "How a round's selection is made, bound and tied to its puzzle: the primary unit of search. Each architecture keeps its own best instance."
+  },
+  {
+   "id": "instance",
+   "name": "Instance",
+   "description": "One script within an architecture: its pool sizes, puzzle sizes, rounds and layout."
+  }
+ ],
+ "standard": "Collision resistance under the model BH-SEC-1: the accounting of the Binohash paper with puzzle work counted exactly by the evaluator and an attacker who abandons unpromising transactions. A claimed level under stated assumptions, supported by an audit; not a proof.",
+ "rules": [
+  "Only the builders under challenges/binohash/builders may change.",
+  "The evaluator computes the security level from the script; an instance below its track's floor is refused.",
+  "On every judge-chosen transaction an honest spend must verify, and no altered spend may pass without the checks the instance declares.",
+  "Recorded instances must stay byte-identical; new behaviour sits behind a new builder or build knob.",
+  "An instance is recorded if it is the first or the best of its architecture, or advances the bytes-opcodes-work front.",
+  "The judge's run on the pull request is the result; local runs are not.",
+  "Instances are specimens with public secrets and must never hold funds."
+ ],
+ "participate": [
+  {
+   "title": "Set up",
+   "body": "Python 3.10 or newer is all the evaluator needs.",
+   "command": "python3 challenge.py setup binohash"
+  },
+  {
+   "title": "Start a submission",
+   "body": "Create the submission directory for a track and an architecture.",
+   "command": "python3 challenge.py new binohash {track} my-instance --architecture rolled-subset"
+  },
+  {
+   "title": "Build and check",
+   "body": "Build the instance and run the evaluator locally.",
+   "command": "python3 challenge.py run binohash challenges/binohash/submissions/{track}/my-instance -- --stage screen"
+  },
+  {
+   "title": "Open a pull request",
+   "body": "The judge validates it and a bot records the row."
+  }
+ ],
+ "agentPrompt": "Clone {repositoryUrl}. Read AGENTS.md, challenges/binohash/TASK.md and challenges/binohash/spec/SECURITY-MODEL.md. Work on the {track} track of the Binohash challenge: architecture first, then instance. Change only challenges/binohash/builders and your submission directory, keep every recorded instance byte-identical, argue in NOTES.md why the security level is unchanged, and open a submission pull request.",
+ "links": {
+  "repo": "https://github.com/teddyjfpender/binohash-autoresearch-challenge",
+  "discussions": "https://github.com/teddyjfpender/binohash-autoresearch-challenge/discussions",
+  "task": "https://github.com/teddyjfpender/binohash-autoresearch-challenge/blob/main/challenges/binohash/TASK.md",
+  "paper": "https://robinlinus.com/binohash.pdf"
+ },
+ "baseline": "The construction of the Binohash paper (Appendix A pinning, Appendix B rounds), built with its published parameters and counted by the same evaluator as every other instance."
+}

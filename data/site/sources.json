@@ -1,0 +1,15 @@
+{
+ "schema": "bac-site-sources-v1",
+ "registry": "challenges.json",
+ "activation": "data/site/activation.json",
+ "challenges": {
+  "binohash": {
+   "benchmark": "challenges/binohash/benchmark.json",
+   "architectures": "challenges/binohash/architectures.json",
+   "targets": "challenges/binohash/targets.json",
+   "ledger": "challenges/binohash/results.tsv",
+   "leaderboard": "data/site/binohash/leaderboard.json",
+   "content": "data/site/binohash/challenge.json"
+  }
+ }
+}

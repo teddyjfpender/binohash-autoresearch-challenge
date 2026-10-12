@@ -1,0 +1,67 @@
+name: Re-validate a recorded instance
+
+# Audit: rebuild one recorded instance from main, validate it exactly as the judge does (current
+# evaluator, ledger-key seed, both stages, Core comparison) and require the result to equal its
+# ledger row. Use it after a change to trusted code.
+#
+# The builder code on main was merged by the judge, not reviewed by a person, so it is treated
+# like a pull request's: the build runs in the sandbox (read-only filesystem, no network, no
+# secrets, unprivileged uid), only the instance file is taken from it, and its digest must equal
+# the ledger row before the result counts. The ledger key exists only in the last step, which
+# runs trusted code on that file.
+on:
+  workflow_dispatch:
+    inputs:
+      submission:
+        description: Ledger `submission` to re-validate, as `<track>/<id>`
+        required: true
+        default: standard/paper-two-round
+
+permissions:
+  contents: read
+
+jobs:
+  revalidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      SUBMISSION: ${{ inputs.submission }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      # The sandbox uid cannot traverse the runner's home directory, so the workspace is bound
+      # to a neutral path, as in the judge.
+      - name: Rebuild the instance in the sandbox
+        run: |
+          [[ "$SUBMISSION" =~ ^[a-z0-9-]+/[a-z0-9-]+$ ]]
+          sudo mkdir -p /opt/bac
+          sudo mount --bind "$GITHUB_WORKSPACE" /opt/bac
+          cd /opt/bac
+          (cd challenges/binohash && ./setup.sh)
+          python3 challenge.py manifest binohash "challenges/binohash/submissions/$SUBMISSION" > "$RUNNER_TEMP/manifest.json"
+          python3 challenge.py build binohash --manifest "$RUNNER_TEMP/manifest.json"
+          # Take the instance, as a regular file, into a directory builder code never saw.
+          mkdir "$RUNNER_TEMP/instance"
+          src=challenges/binohash/instance.json
+          [[ -f "$src" && ! -L "$src" && -s "$src" ]]
+          cat "$src" > "$RUNNER_TEMP/instance/instance.json"
+      - name: Core comparison tool
+        working-directory: challenges/binohash
+        run: cargo build --release --locked --manifest-path tools/core/Cargo.toml
+      - name: Lane seed
+        id: seed
+        env:
+          BAC_LEDGER_KEY: ${{ secrets.BAC_LEDGER_KEY }}
+        run: echo "seed=$(python3 challenge.py seed --root "$RUNNER_TEMP/instance")" >> "$GITHUB_OUTPUT"
+      - name: Validate and compare with the ledger row
+        env:
+          SEED: ${{ steps.seed.outputs.seed }}
+        run: |
+          contract=challenges/binohash/benchmark.json
+          spec="$(jq -er --arg track "${SUBMISSION%%/*}" '.tracks[] | select(.name == $track) | .spec' "$contract")"
+          core="$GITHUB_WORKSPACE/challenges/binohash/tools/core/target/release/cchk"
+          challenges/binohash/evaluate.sh --root "$RUNNER_TEMP/instance" --spec "$spec" --stage screen --seed "$SEED"
+          challenges/binohash/evaluate.sh --root "$RUNNER_TEMP/instance" --spec "$spec" --stage full --seed "$SEED" --core "$core"
+          echo "verifier digest $(python3 challenge.py verifier-digest binohash)" | tee -a "$GITHUB_STEP_SUMMARY"
+          python3 challenge.py compare-row binohash --submission "$SUBMISSION" --score "$RUNNER_TEMP/instance/score.json" --seed "$SEED" | tee -a "$GITHUB_STEP_SUMMARY"

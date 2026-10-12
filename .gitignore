@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.cache/
+.runs/
+.DS_Store
+target/
+# Build and evaluation outputs: never committed.
+/challenges/*/instance.json
+/challenges/*/score.json
+/judge/

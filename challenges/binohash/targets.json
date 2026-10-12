@@ -1,0 +1,42 @@
+{
+ "schema": "bac-targets-v1",
+ "challenge": "binohash",
+ "conventions": "Published points use the Binohash paper's accounting. It counts a signature that is n bytes short as 8n + 2 bits of work; this evaluator counts 8n, because the interpreter also accepts the negated nonce and values of s that wrap around the group order, which quadruples the accepted sighashes (spec/SECURITY-MODEL.md, section 3). The paper counts honest work in sighash evaluations and assumes every round has a solution; this evaluator counts SHA-256 compressions and the retries when a round has none. The paper's byte count is the locking script alone; the evaluator adds the unlocking script. Security and work figures are therefore not comparable cell for cell: `securityBitsPaperFormula` is the paper's section 5.3 formula evaluated with the evaluator's puzzle bits; `securityBitsEvaluator` adds the attacker who abandons a transaction after a round without a solution, and is what ledger rows carry.",
+ "targets": [
+  {
+   "id": "binohash-paper-standard",
+   "track": "standard",
+   "label": "Linus 2026, two rounds, W1 = W2 = 42",
+   "citation": "R. Linus, Binohash: Transaction Introspection Without Softforks (2026), sections 5.3, 6.1 and 6.2 ('Maximum' row)",
+   "pinningBytes": 5,
+   "roundBytes": 5,
+   "n": 120,
+   "t": 8,
+   "rounds": 2,
+   "opcodesPublished": 199,
+   "lockingBytesPublished": 8028,
+   "honestWorkBitsPublished": 44.6,
+   "collisionBitsPublished": 84,
+   "collisionBitsPublishedDerivation": 83.2,
+   "securityBitsPaperFormula": 81.20,
+   "securityBitsEvaluator": 81.52
+  },
+  {
+   "id": "binohash-paper-high",
+   "track": "high",
+   "label": "Linus 2026, two rounds, 6-byte pinning",
+   "citation": "R. Linus, Binohash: Transaction Introspection Without Softforks (2026), section 6.2 ('Higher W1' row)",
+   "pinningBytes": 6,
+   "roundBytes": 5,
+   "n": 120,
+   "t": 8,
+   "rounds": 2,
+   "opcodesPublished": 199,
+   "lockingBytesPublished": 8028,
+   "honestWorkBitsPublished": 52.6,
+   "collisionBitsPublished": 92,
+   "securityBitsPaperFormula": 87.63,
+   "securityBitsEvaluator": 88.41
+  }
+ ]
+}

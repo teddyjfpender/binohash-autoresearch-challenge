@@ -1,0 +1,15 @@
+{
+ "schema": "bac-registry-v1",
+ "challenges": [
+  {
+   "id": "binohash",
+   "path": "challenges/binohash",
+   "title": "Binohash optimisation",
+   "summary": "Binohash transaction digests for Bitcoin Script: smaller scripts, fewer opcodes and less honest grinding work at a fixed claimed security level.",
+   "tracks": [
+    "standard",
+    "high"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,5 @@
+# Build and evaluation outputs: never committed.
+/instance.json
+/score.json
+.runs/
+__pycache__/

@@ -1,0 +1,361 @@
+name: Judge
+
+# The arbiter of submissions. For a pull request that adds a submission directory it
+#   1. checks the path policy and the manifest from git objects (nothing is checked out or run),
+#   2. builds the instance from the pull request's builder code in a no-network sandbox,
+#   3. validates the instance with the trusted evaluator on lanes seeded by the ledger key, and
+#      replays its spends through Bitcoin Core's consensus library,
+#   4. comments the result, and for an instance that earns a standing merges the pull request
+#      and appends the signed row to the ledger.
+#
+# Trust boundaries (spec/VALIDATION.md):
+#   - The workflow, the tooling and the evaluator always come from the base branch.
+#   - Only `build` touches pull-request code. It has a read-only token, no secrets, and runs that
+#     code inside bubblewrap. Its only product is the instance artifact, which is treated as hostile.
+#   - Everything `record` relies on travels as job outputs of `intake` and `evaluate`, which run
+#     base-branch code only. Artifacts are never trusted.
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, labeled]
+
+permissions: {}
+
+# A new push or a judge label supersedes the run in progress. Any other label lands in a group
+# of its own, so it cannot cancel a run.
+concurrency:
+  group: >-
+    judge-${{ github.event.pull_request.number }}-${{
+      github.event.action != 'labeled' ||
+      github.event.label.name == 'architecture-approved' ||
+      github.event.label.name == 'rejudge' }}
+  cancel-in-progress: true
+
+env:
+  PR: ${{ github.event.pull_request.number }}
+  HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+  BASE_SHA: ${{ github.event.pull_request.base.sha }}
+
+jobs:
+  intake:
+    name: Policy and manifest
+    # A label re-runs the judge only when it is a maintainer's approval or an explicit re-judge.
+    if: >-
+      github.event.pull_request.base.ref == 'main' &&
+      (github.event.action != 'labeled' ||
+       github.event.label.name == 'architecture-approved' ||
+       github.event.label.name == 'rejudge')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      is_submission: ${{ steps.intake.outputs.is_submission }}
+      ready: ${{ steps.intake.outputs.ready }}
+      challenge: ${{ steps.intake.outputs.challenge }}
+      policy: ${{ steps.intake.outputs.policy }}
+      manifest: ${{ steps.intake.outputs.manifest }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Fetch the pull request head as data
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The read-only token is given to this fetch alone; no checkout keeps credentials.
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" \
+            fetch --no-tags --quiet origin "+refs/pull/${PR}/head:refs/remotes/pr/head"
+          test "$(git rev-parse refs/remotes/pr/head)" = "$HEAD_SHA"
+      - name: Path policy and manifest
+        id: intake
+        run: |
+          merge_base="$(git merge-base "$BASE_SHA" "$HEAD_SHA")"
+          python3 challenge.py intake --base "$merge_base" --head "$HEAD_SHA" --tip "$BASE_SHA" --out judge
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, pathlib
+          policy = json.loads(pathlib.Path("judge/policy.json").read_text())
+          manifest = pathlib.Path("judge/manifest.json")
+          checked = json.loads(manifest.read_text()) if manifest.exists() else None
+          print(f"is_submission={'true' if policy['is_submission'] else 'false'}")
+          print(f"ready={'true' if policy['is_submission'] and policy['ok'] and checked else 'false'}")
+          print(f"challenge={policy.get('challenge') or ''}")
+          print(f"policy={json.dumps(policy, separators=(',', ':'))}")
+          print(f"manifest={json.dumps(checked, separators=(',', ':')) if checked else ''}")
+          PY
+
+  build:
+    name: Build the instance (sandboxed)
+    needs: intake
+    if: needs.intake.outputs.ready == 'true' && needs.intake.outputs.challenge == 'binohash'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      MANIFEST: ${{ needs.intake.outputs.manifest }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Take only the editable paths from the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Runs before any pull-request code exists in the job; the token is not kept.
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" \
+            fetch --no-tags --quiet origin "+refs/pull/${PR}/head:refs/remotes/pr/head"
+          test "$(git rev-parse refs/remotes/pr/head)" = "$HEAD_SHA"
+          python3 challenge.py overlay binohash --head "$HEAD_SHA"
+          mkdir -p judge && printf '%s' "$MANIFEST" > judge/manifest.json
+      # The sandbox runs as an unprivileged uid that cannot traverse the runner's home directory.
+      # Bind the workspace to a neutral path and build there; the home directory stays closed.
+      - name: Expose the workspace at a path the sandbox can traverse
+        run: |
+          sudo mkdir -p /opt/bac
+          sudo mount --bind "$GITHUB_WORKSPACE" /opt/bac
+          ls -ld /opt/bac /opt/bac/challenges/binohash
+      # setup.sh checks Python and installs bubblewrap. It runs no builder code.
+      - name: Sandbox
+        working-directory: /opt/bac/challenges/binohash
+        run: |
+          ./setup.sh
+          command -v bwrap
+      - name: Recorded instances still build byte for byte
+        working-directory: /opt/bac/challenges/binohash
+        run: tools/ci/pins_sandboxed.sh
+      - name: Build the submitted instance
+        working-directory: /opt/bac
+        run: python3 challenge.py build binohash --manifest judge/manifest.json
+      - name: Upload the instance
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: instance
+          path: challenges/binohash/instance.json
+          if-no-files-found: error
+          retention-days: 30
+
+  evaluate:
+    name: Validate with the trusted evaluator
+    needs: [intake, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    outputs:
+      row: ${{ steps.row.outputs.row }}
+      decision: ${{ steps.row.outputs.decision }}
+    env:
+      MANIFEST: ${{ needs.intake.outputs.manifest }}
+    steps:
+      # Base-branch code only: no file of the pull request is present in this job.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+      - name: Download the instance
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: instance
+          path: judge/instance
+      - name: The instance is one regular file
+        run: |
+          test "$(find judge/instance -mindepth 1 | wc -l)" = 1
+          test -f judge/instance/instance.json && ! test -L judge/instance/instance.json
+          test "$(stat -c %s judge/instance/instance.json)" -le 2097152
+      - name: Core comparison tool, built from trusted source
+        working-directory: challenges/binohash
+        run: |
+          cargo build --release --locked --manifest-path tools/core/Cargo.toml
+          tools/core/target/release/cchk < tests/data/core-vectors.txt | tail -n 2
+      - name: Lane seed
+        id: seed
+        env:
+          BAC_LEDGER_KEY: ${{ secrets.BAC_LEDGER_KEY }}
+        run: |
+          if [[ -z "$BAC_LEDGER_KEY" ]]; then
+            echo "The BAC_LEDGER_KEY secret is not set; the judge cannot seed lanes or sign rows." >&2
+            exit 1
+          fi
+          echo "seed=$(python3 challenge.py seed --root judge/instance)" >> "$GITHUB_OUTPUT"
+      # The evaluator never sees the ledger key: only the seed derived from it.
+      - name: Screen and full validation
+        env:
+          SEED: ${{ steps.seed.outputs.seed }}
+        run: |
+          contract=challenges/binohash/benchmark.json
+          track="$(python3 -c 'import json,os; print(json.loads(os.environ["MANIFEST"])["track"])')"
+          spec="$(jq -er --arg track "$track" '.tracks[] | select(.name == $track) | .spec' "$contract")"
+          core="$GITHUB_WORKSPACE/challenges/binohash/tools/core/target/release/cchk"
+          for stage in screen full; do
+            echo "::group::$stage"
+            rm -f judge/instance/score.json
+            extra=()
+            if [[ "$(jq -r ".validation.$stage.core // false" "$contract")" == "true" ]]; then extra=(--core "$core"); fi
+            challenges/binohash/evaluate.sh --root judge/instance --spec "$spec" --stage "$stage" --seed "$SEED" "${extra[@]}"
+            test -s judge/instance/score.json
+            echo "::endgroup::"
+          done
+      - name: Ledger row and standing
+        id: row
+        env:
+          SEED: ${{ steps.seed.outputs.seed }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          printf '%s' "$MANIFEST" > judge/manifest.json
+          python3 challenge.py row binohash --manifest judge/manifest.json --score judge/instance/score.json \
+            --seed "$SEED" --commit "$HEAD_SHA" --pr "$PR" --author "$AUTHOR" --out judge/row.json
+          python3 challenge.py decide binohash --row judge/row.json > judge/decision.json
+          cat judge/decision.json
+          {
+            echo "row=$(jq -c . judge/row.json)"
+            echo "decision=$(jq -c . judge/decision.json)"
+          } >> "$GITHUB_OUTPUT"
+      - name: Summary
+        run: |
+          jq -r '"| Bytes | Opcodes | Work | Security | Score |\n| ---: | ---: | ---: | ---: | ---: |\n| \(.bytes) | \(.opcodes) | 2^\(.work_bits) | \(.security_bits) | \(.score) |"' judge/row.json >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload score.json
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: score
+          path: judge/instance/score.json
+          if-no-files-found: ignore
+          retention-days: 30
+
+  record:
+    name: Report, merge and record
+    needs: [intake, build, evaluate]
+    if: ${{ !cancelled() && needs.intake.result == 'success' && needs.intake.outputs.is_submission == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      POLICY: ${{ needs.intake.outputs.policy }}
+      MANIFEST: ${{ needs.intake.outputs.manifest }}
+      ROW: ${{ needs.evaluate.outputs.row }}
+      DECISION: ${{ needs.evaluate.outputs.decision }}
+      BUILD_RESULT: ${{ needs.build.result }}
+      EVALUATE_RESULT: ${{ needs.evaluate.result }}
+      # An approval counts only on the run its label started, which judges the commit the
+      # maintainer approved. Any later push runs without it and the label is removed.
+      APPROVED: ${{ github.event.action == 'labeled' && github.event.label.name == 'architecture-approved' }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Compose the report
+        id: report
+        run: |
+          mkdir -p judge
+          printf '%s' "$POLICY" > judge/policy.json
+          [[ -z "$MANIFEST" ]] || printf '%s' "$MANIFEST" > judge/manifest.json
+          [[ -z "$ROW" ]] || printf '%s' "$ROW" > judge/row.json
+          [[ -z "$DECISION" ]] || printf '%s' "$DECISION" > judge/decision.json
+          python3 challenge.py report --dir judge --build "$BUILD_RESULT" --evaluate "$EVALUATE_RESULT" \
+            --approved "$APPROVED" --run-url "$RUN_URL" --out judge/report.json > /dev/null
+          jq -r '.body' judge/report.json > judge/comment.md
+          echo "merge=$(jq -r '.merge' judge/report.json)" >> "$GITHUB_OUTPUT"
+          echo "label=$(jq -r '.label' judge/report.json)" >> "$GITHUB_OUTPUT"
+      - name: Comment and label
+        env:
+          LABEL: ${{ steps.report.outputs.label }}
+        run: |
+          for name in submission-invalid submission-not-recorded needs-architecture-review submission-validated submission-recorded architecture-approved rejudge; do
+            gh label create "$name" --force >/dev/null 2>&1 || true
+          done
+          previous="$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
+            --jq '[.[] | select(.user.login == "github-actions[bot]" and (.body | startswith("<!-- bac-judge -->")))][-1].id // empty')"
+          if [[ -n "$previous" ]]; then
+            gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$previous" -F body=@judge/comment.md >/dev/null
+          else
+            gh pr comment "$PR" --body-file judge/comment.md
+          fi
+          stale=submission-invalid,submission-not-recorded,needs-architecture-review,submission-validated,rejudge
+          [[ "$APPROVED" == "true" ]] || stale="$stale,architecture-approved"
+          gh pr edit "$PR" --remove-label "$stale" >/dev/null 2>&1 || true
+          gh pr edit "$PR" --add-label "$LABEL"
+      - name: Merge and record
+        if: steps.report.outputs.merge == 'true'
+        env:
+          BAC_LEDGER_KEY: ${{ secrets.BAC_LEDGER_KEY }}
+        run: |
+          say() { gh pr comment "$PR" --body "$1"; }
+          refuse() { say "$1"; gh pr edit "$PR" --remove-label submission-validated --add-label "$2"; }
+          id="$(jq -r '"\(.challenge)/\(.track)/\(.id)"' judge/manifest.json)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # The instance was validated against BASE_SHA. Merge only if the code that builds and
+          # judges instances, and the contract, are unchanged on main since then.
+          if ! python3 challenge.py unchanged binohash --base "$BASE_SHA" --head HEAD; then
+            say "The judge, the contract or the builder code on \`main\` changed after this run started. Update the branch on \`main\`; the judge will run again."
+            exit 1
+          fi
+          # Another submission may have been recorded since: decide again on the current ledger.
+          python3 challenge.py decide binohash --row judge/row.json > judge/decision-final.json
+          if [[ "$(jq -r '.accepted' judge/decision-final.json)" != "true" ]]; then
+            refuse "Valid, but no longer recorded: $(jq -r '.reason' judge/decision-final.json)." submission-not-recorded
+            exit 0
+          fi
+
+          # Preview. Merging cannot be undone, so the merged tree with its row must pass the
+          # contract check before anything is merged.
+          git fetch --quiet origin "+refs/pull/${PR}/head:refs/remotes/pr/head"
+          test "$(git rev-parse refs/remotes/pr/head)" = "$HEAD_SHA"
+          git merge --quiet --squash "$HEAD_SHA"
+          jq --arg now "$(date +%s)" '.unix_time = $now' judge/row.json > judge/row-preview.json
+          if ! python3 challenge.py record binohash --row judge/row-preview.json > judge/preview.log 2>&1 \
+             || ! python3 challenge.py check --signed >> judge/preview.log 2>&1; then
+            cat judge/preview.log
+            refuse "Valid, but the merged tree fails the repository's contract check (for example a broken relative link in \`NOTES.md\`). See the record job's log, fix it and push." submission-invalid
+            exit 1
+          fi
+          git reset --quiet --hard origin/main
+          git clean --quiet -fd -e judge
+
+          gh pr merge "$PR" --squash --match-head-commit "$HEAD_SHA" --subject "Submission $id (#$PR)" --body ""
+          merged="$(gh pr view "$PR" --json mergeCommit --jq '.mergeCommit.oid')"
+
+          # Record. Another row may land between the merge and the push, so re-read main and
+          # re-sign on top of it until the push goes through.
+          pushed=""
+          for attempt in 1 2 3 4 5; do
+            git fetch --quiet origin main
+            git reset --quiet --hard origin/main
+            git merge-base --is-ancestor "$merged" HEAD
+            jq --arg commit "$merged" --arg now "$(date +%s)" '.commit = $commit | .unix_time = $now' judge/row.json > judge/row-final.json
+            python3 challenge.py decide binohash --row judge/row-final.json > judge/decision-final.json
+            if [[ "$(jq -r '.accepted' judge/decision-final.json)" != "true" ]]; then
+              refuse "The code is merged, but another instance was recorded first and this one no longer earns a standing: $(jq -r '.reason' judge/decision-final.json)." submission-not-recorded
+              exit 0
+            fi
+            python3 challenge.py record binohash --row judge/row-final.json
+            python3 challenge.py check --signed
+            git add challenges/binohash/results.tsv data/site
+            git commit --quiet -m "Record $id (#$PR)"
+            if git push --quiet origin HEAD:main; then pushed=yes; break; fi
+            sleep $((attempt * 5))
+          done
+          if [[ -z "$pushed" ]]; then
+            say "The submission is merged at $merged but its row could not be pushed. A maintainer must record it (spec/OPERATIONS.md, recovery)."
+            exit 1
+          fi
+          gh pr edit "$PR" --remove-label submission-validated --add-label submission-recorded
+          say "Recorded in \`challenges/binohash/results.tsv\` at $(git rev-parse --short HEAD), built from $merged."
+          # A push by this token starts no workflows, so the checks of main are started here.
+          gh workflow run contract.yml --ref main || true
+          gh workflow run ledger-audit.yml --ref main || true

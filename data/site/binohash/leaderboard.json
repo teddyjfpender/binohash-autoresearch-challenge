@@ -1,0 +1,105 @@
+{
+ "schema": "bac-leaderboard-v1",
+ "challenge": "binohash",
+ "metric": {
+  "name": "score",
+  "formula": "bytes x opcodes x 2^(work_bits - 40)",
+  "direction": "lower-is-better",
+  "components": [
+   {
+    "id": "bytes",
+    "name": "Script bytes",
+    "unit": "bytes",
+    "note": "The production locking script plus the largest unlocking script an honest spend can need. Both scripts in full, without their length prefixes; the rest of the two transactions is not counted."
+   },
+   {
+    "id": "opcodes",
+    "name": "Opcodes",
+    "unit": "counted operations",
+    "note": "The interpreter's operation count for the locking script on an honest spend: every opcode above OP_16 plus the number of keys of each executed OP_CHECKMULTISIG. Consensus allows 201."
+   },
+   {
+    "id": "work_bits",
+    "name": "Honest grinding work",
+    "unit": "log2 SHA-256 compressions",
+    "note": "Expected SHA-256 compressions for one honest spend under the reference grinder BH-WORK-1: the pinning puzzles, the rounds' searches and the retries when a round has no solution. The score counts work in units of 2^40 compressions."
+   }
+  ],
+  "fixed": {
+   "id": "security_bits",
+   "name": "Claimed security level",
+   "unit": "bits",
+   "note": "Collision resistance under the model BH-SEC-1, in sighash evaluations. Each track fixes a floor; an instance below it is refused."
+  }
+ },
+ "ledger": "challenges/binohash/results.tsv",
+ "ledgerRows": 0,
+ "ledgerHead": null,
+ "tracks": [
+  {
+   "track": "standard",
+   "title": "Standard: the paper's 5-byte configuration",
+   "spec": "bh1-standard",
+   "securityFloorBits": 81.5,
+   "instances": 0,
+   "best": null,
+   "baseline": null,
+   "belowBaseline": null,
+   "architectures": [],
+   "front": [],
+   "history": [],
+   "targets": [
+    {
+     "id": "binohash-paper-standard",
+     "track": "standard",
+     "label": "Linus 2026, two rounds, W1 = W2 = 42",
+     "citation": "R. Linus, Binohash: Transaction Introspection Without Softforks (2026), sections 5.3, 6.1 and 6.2 ('Maximum' row)",
+     "pinningBytes": 5,
+     "roundBytes": 5,
+     "n": 120,
+     "t": 8,
+     "rounds": 2,
+     "opcodesPublished": 199,
+     "lockingBytesPublished": 8028,
+     "honestWorkBitsPublished": 44.6,
+     "collisionBitsPublished": 84,
+     "collisionBitsPublishedDerivation": 83.2,
+     "securityBitsPaperFormula": 81.2,
+     "securityBitsEvaluator": 81.52
+    }
+   ]
+  },
+  {
+   "track": "high",
+   "title": "High: the paper's 6-byte pinning configuration",
+   "spec": "bh1-high",
+   "securityFloorBits": 88.4,
+   "instances": 0,
+   "best": null,
+   "baseline": null,
+   "belowBaseline": null,
+   "architectures": [],
+   "front": [],
+   "history": [],
+   "targets": [
+    {
+     "id": "binohash-paper-high",
+     "track": "high",
+     "label": "Linus 2026, two rounds, 6-byte pinning",
+     "citation": "R. Linus, Binohash: Transaction Introspection Without Softforks (2026), section 6.2 ('Higher W1' row)",
+     "pinningBytes": 6,
+     "roundBytes": 5,
+     "n": 120,
+     "t": 8,
+     "rounds": 2,
+     "opcodesPublished": 199,
+     "lockingBytesPublished": 8028,
+     "honestWorkBitsPublished": 52.6,
+     "collisionBitsPublished": 92,
+     "securityBitsPaperFormula": 87.63,
+     "securityBitsEvaluator": 88.41
+    }
+   ]
+  }
+ ]
+}

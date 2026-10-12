@@ -1,0 +1,25 @@
+Binohash Autoresearch Challenge
+Copyright 2026 the Binohash Autoresearch Challenge contributors
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Third-party material
+
+- The repository layout, the judge tooling under tools/bac, the workflows and the shared
+  documents under spec/ are adapted from the Quantum Autoresearch Challenge
+  (https://github.com/teddyjfpender/quantum-autoresearch-challenge), Apache-2.0.
+- challenges/binohash/benchmark.sh and the two-process build/evaluate design are adapted,
+  through that repository, from the ecdsa.fail point-addition challenge
+  (https://github.com/Layr-Labs/ecdsafail-challenge).
+- The Binohash construction, its parameters and the script listings the baseline builder
+  follows are from R. Linus, "Binohash: Transaction Introspection Without Softforks" (2026),
+  https://robinlinus.com/binohash.pdf. They are cited in challenges/binohash/spec/REFERENCES.md.
+- challenges/binohash/evaluator/bh/ripemd160.py is a pure-Python RIPEMD-160 used only where
+  hashlib does not provide one.
+- challenges/binohash/tools/core links the Rust crate `bitcoinconsensus`, which packages the
+  consensus library of Bitcoin Core (MIT).
+- Evidence levels and cost boundaries in challenges/binohash/spec/CONVENTIONS.md follow the
+  bitcoin-scripts knowledge base (https://github.com/solving-bitcoin/bitcoin-scripts).
+
+If you are an author of reused material and want the attribution changed, write to the
+maintainers through the repository's Discussions (category Q&A).

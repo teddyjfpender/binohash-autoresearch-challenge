@@ -1,0 +1,22 @@
+{
+ "schema": "bac-submission-v1",
+ "challenge": "binohash",
+ "track": "standard",
+ "architecture": "rolled-subset",
+ "title": "Late pools, first round unclamped, two rounds of 120-choose-8",
+ "build": {
+  "BINO_BUILDER": "late",
+  "BINO_CLAMP": "later",
+  "BINO_PIN_BYTES": "5",
+  "BINO_ROUNDS": "120:8,120:8",
+  "BINO_ROUND_BYTES": "5,5"
+ },
+ "authors": [
+  "teddyjfpender"
+ ],
+ "model": "Claude Opus 5.5",
+ "harness": "Claude Code",
+ "parents": [
+  "late-pools"
+ ]
+}

@@ -1,0 +1,135 @@
+"""Repository contract check: what must hold on every commit of `main` and every pull request."""
+from __future__ import annotations
+
+import re
+
+from . import ledger, manifest, site
+from .common import ROOT, SLUG, ContractError, challenges, load_json, rel
+
+BENCHMARK_KEYS = {
+    "schema", "name", "title", "description", "status", "direction", "metric", "tracks", "editablePaths",
+    "submissionPaths", "trustedPaths", "architectures", "targets", "ledger", "build", "validation",
+    "acceptance", "setupCommand", "benchmarkCommand", "scorePath", "runner",
+}
+TRACK = re.compile(r"^[a-z0-9][a-z0-9-]{0,30}$")
+LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
+CODE = re.compile(r"```.*?```|`[^`\n]*`", re.S)
+
+
+def check_baseline(challenge, track: dict, rows: list[dict]) -> list[str]:
+    """A staging catalogue entry can precede an authenticated baseline; never a live one."""
+    where, errors = challenge.path, []
+    baseline = track.get("baseline", {})
+    wanted = baseline.get("submission")
+    if baseline.get("pending") is True:
+        if challenge.contract.get("status") != "staging":
+            errors.append(f"{where}: only staging tracks may have a pending baseline")
+        if wanted is not None:
+            errors.append(f"{where}: a pending baseline must not claim a ledger submission")
+        try:
+            catalogue = load_json(challenge.dir / baseline["catalogue"])
+            if catalogue.get("schema") != "bac-starting-board-v1":
+                raise ContractError("unrecognised starting-board catalogue")
+            candidate = next(c for c in catalogue["candidates"] if c["id"] == baseline["candidate"])
+            if (candidate["track"], candidate["spec"], candidate["role"]) != (track["name"], track["spec"], "baseline"):
+                errors.append(f"{where}: pending baseline does not match its staging track")
+            if not (challenge.dir / challenge.contract["submissionPaths"][0] / candidate["submission"] / "submission.json").is_file():
+                errors.append(f"{where}: pending baseline {candidate['id']} has no submission directory")
+        except (KeyError, StopIteration, ContractError):
+            errors.append(f"{where}: pending baseline requires a matching promotion candidate")
+    elif wanted is None or not any(r["submission"] == wanted and r["track"] == track["name"] for r in rows):
+        errors.append(f"{where}: track {track['name']} needs a baseline that is a ledger row of the track")
+    return errors
+
+
+def check_markdown_links() -> list[str]:
+    errors = []
+    skip = {"target", "node_modules", ".git", ".runs"}
+    for path in ROOT.rglob("*.md"):
+        if skip & set(path.relative_to(ROOT).parts):
+            continue
+        # Links are read outside code, and only targets that look like paths are followed, so
+        # notation such as T[k](n) in technical prose is not mistaken for one.
+        for target in LINK.findall(CODE.sub(" ", path.read_text(encoding="utf-8"))):
+            if re.match(r"^[a-z]+:", target) or target.startswith("#"):
+                continue
+            if "/" not in target and "." not in target:
+                continue
+            resolved = (path.parent / target.split("#")[0]).resolve()
+            if not resolved.exists():
+                errors.append(f"{rel(path)}: broken link {target}")
+    return errors
+
+
+def run(signed: bool = False) -> list[str]:
+    errors: list[str] = []
+    try:
+        all_challenges = challenges()
+    except ContractError as exc:
+        return [str(exc)]
+    for challenge in all_challenges:
+        where = challenge.path
+        contract = challenge.contract
+        missing = BENCHMARK_KEYS - set(contract)
+        if missing:
+            errors.append(f"{where}/benchmark.json: missing keys {sorted(missing)}")
+            continue
+        if contract["name"] != challenge.id or contract["direction"] != "-":
+            errors.append(f"{where}/benchmark.json: name must be the challenge id and direction '-'")
+        for track in contract["tracks"]:
+            if not TRACK.match(str(track.get("name", ""))) or not {"title", "spec", "description", "standard"} <= set(track):
+                errors.append(f"{where}/benchmark.json: track {track.get('name')} needs name, title, spec, description and standard")
+                continue
+            spec_file = challenge.dir / "specs" / f"{track['spec']}.json"
+            try:
+                if load_json(spec_file).get("floorBits") != track["standard"].get("floorBits"):
+                    errors.append(f"{where}: track {track['name']} and {rel(spec_file)} state different security floors")
+            except ContractError as exc:
+                errors.append(str(exc))
+        try:
+            architectures = challenge.architectures()
+            rows = ledger.read(challenge.ledger)
+        except ContractError as exc:
+            errors.append(str(exc))
+            continue
+        for arch_id, arch in architectures.items():
+            if not SLUG.match(arch_id) or arch.get("parent") not in (None, *architectures):
+                errors.append(f"{where}: architecture '{arch_id}' has a bad id or parent")
+        errors += [f"{where}/{contract['ledger']}: {e}" for e in ledger.check_rows(rows, challenge.tracks, architectures, signed)]
+        names = [r["submission"] for r in rows]
+        if len(names) != len(set(names)):
+            errors.append(f"{where}/{contract['ledger']}: a submission is recorded twice")
+        recorded = set(names)
+        present = set()
+        for base in contract["submissionPaths"]:
+            for track_dir in sorted((challenge.dir / base).glob("*")):
+                if not track_dir.is_dir():
+                    continue
+                for directory in sorted(p for p in track_dir.iterdir() if p.is_dir()):
+                    try:
+                        manifest.load(challenge, directory, architectures)
+                    except ContractError as exc:
+                        errors.append(f"{rel(directory)}: {exc}")
+                    present.add(f"{track_dir.name}/{directory.name}")
+                    row = next((r for r in rows if r["submission"] == f"{track_dir.name}/{directory.name}"), None)
+                    try:
+                        checked = manifest.load(challenge, directory, architectures)
+                    except ContractError:
+                        continue
+                    if row is not None and (row["track"], row["architecture"]) != (checked["track"], checked["architecture"]):
+                        errors.append(f"{rel(directory)}: track or architecture differs from its ledger row")
+        errors += [f"{where}: ledger row names submission '{s}', which has no directory" for s in sorted(recorded - present)]
+        for track in contract["tracks"]:
+            errors += check_baseline(challenge, track, rows)
+        for target in challenge.targets():
+            if target.get("track") not in challenge.tracks:
+                errors.append(f"{where}: target '{target.get('id')}' names an unknown track")
+    try:
+        activation = load_json(site.SITE / "activation.json")
+        if activation.get("status") not in ("staging", "live", "closed"):
+            errors.append("data/site/activation.json: status must be staging, live or closed")
+        errors += [f"{p}: stale; run python3 challenge.py site" for p in site.export(check=True)]
+    except ContractError as exc:
+        errors.append(str(exc))
+    errors += check_markdown_links()
+    return errors
