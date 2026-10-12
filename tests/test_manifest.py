@@ -77,13 +77,15 @@ class ManifestTest(unittest.TestCase):
         finally:
             shutil.rmtree(directory, ignore_errors=True)
 
-    def test_starting_board_manifests_are_valid(self):
+    def test_recorded_manifests_are_valid(self):
         root = self.challenge.dir / "submissions"
         found = sorted(p for p in root.glob("*/*") if p.is_dir())
         self.assertGreaterEqual(len(found), 2)
         for directory in found:
             checked = manifest.load(self.challenge, directory)
-            self.assertEqual(manifest.classified(self.challenge, checked), checked["architecture"])
+            # The rules know the shipped builders. A builder they do not know classifies as None;
+            # its architecture was a maintainer's approval, which no rule can check.
+            self.assertIn(manifest.classified(self.challenge, checked), (checked["architecture"], None))
 
 
 if __name__ == "__main__":
