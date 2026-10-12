@@ -98,6 +98,11 @@ For the published configuration: `lambda = 0.76`, `p = 0.53` per round and 0.28 
 3.5 tries per spend; three pinning puzzles once at `2^43.0`; the cheap round first;
 `work = 2^46.74`.
 
+The security model caps this configuration's level at 80.011 bits whatever its rounds are
+worth above that ([SECURITY-MODEL.md](SECURITY-MODEL.md), section 4), so on the `standard`
+track the number of tries per spend is a cost a design can lower with more selections, paid
+for in bytes, without lowering its level, as long as its rounds stay worth at least the floor.
+
 ## 6. What the count leaves out
 
 - **Setup.** Building an instance is free in this epoch: nine-byte signatures and their
@@ -109,4 +114,6 @@ For the published configuration: `lambda = 0.76`, `p = 0.53` per round and 0.28 
   finding about the work model. Report it in Discussions with the prefix `[Contract]`; the
   model changes by epoch, not by submission.
 - **Hash-type bytes.** The honest spender uses the canonical hash types above (assumption A3
-  for rounds). Varying the byte for extra attempts is outside the model on both sides.
+  for rounds). Varying the byte for extra attempts is outside the model on both sides. What it
+  is worth to an attacker is an open question ([SECURITY-MODEL.md](SECURITY-MODEL.md),
+  section 6).

@@ -40,8 +40,12 @@ Round 0 runs second, with the signatures round 1 left behind lying directly belo
 keeps its clamp: the defect test `no-clamp` shows the selection an unclamped index makes there.
 
 The audit exercises both halves of this: every index is swept over every depth, with and
-without signatures planted under the witness, by a spender who can open any commitment. On
-public lanes every accepted alteration kept the declared structure. That is a search and the
+without signatures planted under the witness, by a spender who can open any commitment and can
+set an unlocking item to whatever an equality compares it with. On public lanes every accepted
+alteration kept the declared structure. A copy of this builder with the clamp removed from
+every round passed an earlier audit and is refused by the present one. The accepted spend
+there took a signature the previous round had not selected, which needs an unclamped round
+that runs after another; here the only unclamped round runs first. That is a search and the
 argument above is prose; this instance needs a maintainer's reading before it is relied on,
 and the argument depends on properties of this layout (what lies below the first pool, and
 that two non-key constants sit directly above the witness) that a variant could lose.
@@ -58,7 +62,7 @@ Score 8,530,623,757 against 9,033,284,929 for the baseline: 5.6% lower, all of i
 
 ## Result and next steps
 
-`late-round48` has the lower score on this track but is larger; this instance dominates the baseline outright. Unclamping `late-round48` was tried and is worse: its script shifts by 30 bytes, round 0's attempts go from 9 to 10 compressions, and that round is the 48-bit one.
+This instance is at or below the baseline on every count and has the lowest score on this track. An instance with a 48-bit round puzzle and 5-byte pinning (`late-round48`) had a lower score on the first board under the old model BH-SEC-1. It was removed: BH-SEC-2 caps a level at the work of two pinning puzzles, 80.011 bits with 5-byte pinning, below this track's floor of 88.4.
 
 ## Attribution
 

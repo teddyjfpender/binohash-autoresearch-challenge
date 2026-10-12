@@ -119,6 +119,8 @@ def build(rounds=((14, 3), (14, 3)), faults=()) -> bytes:
     dummies = _dummies(sum(n for n, _ in rounds) + 2)
     preimages = [[hashlib.sha256(f"specimen|{r}|{j}".encode()).digest()[:20] for j in range(n)]
                  for r, (n, _t) in enumerate(rounds)]
+    if "preimage-is-key" in faults:
+        preimages[0][1] = dummies[2][1]  # element 1 of round 0 is opened by its own public key
     locking, prod = _assemble(rounds, 55, 42, faults, dummies, preimages)
     locking_test, test = _assemble(rounds, 59, 10, faults, dummies, preimages)
     if "twin-differs" in faults:

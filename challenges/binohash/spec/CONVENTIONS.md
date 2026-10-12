@@ -46,7 +46,7 @@ A ledger row is evidence of a stated kind and no more. In the vocabulary of the
 | Honest spends of the test twin are valid; altered ones are refused | Differentially validated against Bitcoin Core's consensus library, for the spends replayed, when the row's engine includes `core`. Otherwise locally reproduced. |
 | The production script behaves as the test twin | Inspected: by the twin rule, not by execution. |
 | Puzzle work | Locally reproduced arithmetic, given assumption A1. |
-| The security level | A claim under BH-SEC-1's assumptions, with an audit as supporting evidence. Not a proof. |
+| The security level | A claim under BH-SEC-2's assumptions, with an audit as supporting evidence. Not a proof. |
 | Deployment class | Consensus-validated for the test twin's spends replayed through Core. Not policy-validated; no funded transaction, regtest or otherwise, is part of the judge. |
 
 That knowledge base lists reproducing Binohash as open problem OP-011, complete when

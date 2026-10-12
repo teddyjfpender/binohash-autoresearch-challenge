@@ -23,11 +23,18 @@ challenge fixes security and asks for all three.
 
 | Track | Security floor | Spec | Baseline |
 | --- | ---: | --- | --- |
-| `standard` | 81.5 bits | `bh1-standard` | The paper's 5-byte configuration: two rounds of 120-choose-8 |
+| `standard` | 80.0 bits | `bh1-standard` | The paper's 5-byte configuration: two rounds of 120-choose-8 |
 | `high` | 88.4 bits | `bh1-high` | The same with 6-byte pinning puzzles |
 
 The floors are the levels of the paper's two published configurations **as this evaluator
-counts them**, under the model [BH-SEC-1](spec/SECURITY-MODEL.md).
+counts them**, under the model [BH-SEC-2](spec/SECURITY-MODEL.md), rounded down to a tenth of a
+bit: 80.011 and 88.411 bits.
+
+The model caps every level at the work of satisfying the two cheapest pinning puzzles with one
+signature mode (the *pinning cap*). With 5-byte pinning puzzles the cap is 80.011 bits and with
+6-byte puzzles it is 96.011. The rounds of the `standard` baseline are worth 81.521 bits, so
+its level is the cap. On the `high` track 6-byte pinning is required in practice, because
+5-byte pinning cannot be credited above 80.011.
 
 ## What is counted
 
@@ -36,7 +43,7 @@ counts them**, under the model [BH-SEC-1](spec/SECURITY-MODEL.md).
 | `bytes` | Locking script plus the largest honest unlocking script | The instance's bytes |
 | `opcodes` | The interpreter's operation count on an honest spend | Executing it |
 | `work_bits` | log2 expected SHA-256 compressions for one spend | The script's layout and puzzles, [BH-WORK-1](spec/WORK-MODEL.md) |
-| `security_bits` | Collision resistance in sighash evaluations | The puzzles and pools, [BH-SEC-1](spec/SECURITY-MODEL.md) |
+| `security_bits` | Collision resistance in sighash evaluations | The puzzles and pools, [BH-SEC-2](spec/SECURITY-MODEL.md) |
 
     score = bytes x opcodes x 2^(work_bits - 40)        lower is better
 
@@ -66,32 +73,29 @@ ledger-key seed, with the Core comparison ([`results.tsv`](results.tsv)).
 
 | Track | Instance | Bytes | Opcodes | Work | Security | Score | |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| `standard` | Baseline: paper construction | 9,349 | 199 | 2^46.740 | 81.521 | 198,865,940 | |
-| `standard` | Late pools, same parameters | 9,293 | 199 | 2^46.081 | 81.521 | 125,190,801 | 1.59x |
-| `standard` | Late pools, 120 and 172 | 10,929 | 199 | 2^45.777 | 81.524 | 119,256,975 | 1.67x |
-| `standard` | Late pools, 108 and 120 | 8,921 | 199 | 2^46.244 | 81.643 | 134,554,401 | 1.48x |
-| `standard` | First round unclamped, same parameters | 9,269 | 191 | 2^46.121 | 81.521 | 123,217,063 | 1.61x |
-| `standard` | First round unclamped, 116x8 and 128x9 | 9,477 | 201 | 2^45.757 | 81.546 | 103,014,088 | 1.93x |
-| `standard` | First round unclamped, 104x8 and 88x9 | 7,854 | 201 | 2^46.559 | 81.959 | 148,847,895 | 1.34x |
+| `standard` | Baseline: paper construction | 9,349 | 199 | 2^46.740 | 80.011 | 198,865,940 | |
+| `standard` | Late pools, same parameters | 9,293 | 199 | 2^46.081 | 80.011 | 125,190,801 | 1.59x |
+| `standard` | First round unclamped, same parameters | 9,269 | 191 | 2^46.121 | 80.011 | 123,217,063 | 1.61x |
 | `high` | Baseline: paper construction, 6-byte pinning | 9,345 | 199 | 2^52.246 | 88.411 | 9,033,284,929 | |
 | `high` | Late pools, same parameters | 9,289 | 199 | 2^52.235 | 88.411 | 8,910,950,604 | 1.01x |
 | `high` | First round unclamped, same parameters | 9,265 | 191 | 2^52.235 | 88.411 | 8,530,623,757 | 1.06x |
-| `high` | 6-byte round puzzle, 5-byte pinning | 10,634 | 199 | 2^51.423 | 89.231 | 5,810,524,983 | 1.55x |
 
-The rows below each baseline come from the first search run against the evaluator
-([what it found](#what-the-first-search-found)).
+The last column is the baseline's score divided by the row's. All six instances use the paper's
+parameters; the rows below each baseline differ from it in layout only
+([how the board came to be these six](#what-the-first-search-found)).
 
 Against the paper's own figures ([`targets.json`](targets.json), with conventions):
 
 - **Opcodes agree**: 199.
 - **The locking script** is 8,101 bytes here and 8,028 in the paper; the evaluator also counts
   the 1,248-byte unlocking script.
-- **Security is about two and a half bits lower** than the paper states (81.5 against about
-  84). Two bits are the puzzle: a signature `k` bytes short costs `8k` bits of work, not
-  `8k + 2`, because the interpreter also accepts the negated nonce and values of `s` that wrap
-  around the group order. One spend through each of the four cases was accepted by Bitcoin
-  Core's consensus library ([SECURITY-MODEL.md](spec/SECURITY-MODEL.md), section 3). The rest
-  is an attacker who abandons a transaction when its first round has no solution.
+- **Security is about four bits lower** than the paper states (80.0 against about 84). Two
+  bits are the puzzle: a signature `k` bytes short costs `8k` bits of work, not `8k + 2`,
+  because the interpreter also accepts the negated nonce and values of `s` that wrap around the
+  group order. One spend through each of the four cases was accepted by Bitcoin Core's
+  consensus library ([SECURITY-MODEL.md](spec/SECURITY-MODEL.md), section 3). About half a bit
+  is in how the rounds are counted (section 4 of the model), which leaves them worth 81.521
+  bits. The last bit and a half is the pinning cap of 80.011 bits.
 - **Honest work** is 2^46.74 compressions here and 2^44.6 sighash evaluations in the paper. The
   units differ, the puzzle is two bits easier, and the evaluator counts something the paper's
   figure leaves out: with 2^39.6 subsets against a 2^40 puzzle, both rounds have a solution for
@@ -99,9 +103,15 @@ Against the paper's own figures ([`targets.json`](targets.json), with convention
 
 ## What the first search found
 
-Before opening the board, four rounds of search were run against the evaluator: parameter
-searches with exact counts, a new layout, and a study of where the index clamp is needed. They
-found less in the construction than in the judge.
+The board has been searched twice. A parameter search was run before any row was recorded, and
+an agent search was then run against the first recorded board. Both found more wrong with the
+judge than they found in the construction. The model that came out of the second is BH-SEC-2;
+the one it replaced is called BH-SEC-1 below.
+
+### The parameter search
+
+Four rounds of search were run against the evaluator: parameter searches with exact counts, a
+new layout, and a study of where the index clamp is needed.
 
 **In the judge** (all fixed, each with a regression test):
 
@@ -125,24 +135,69 @@ found less in the construction than in the judge.
 
 - *Layout is worth 0.66 bits of work for free.* Moving the commitment tables ahead of both
   pools takes a first-round attempt from 71 compressions to 9 (`late-pools`).
-- *Unequal pools are worth another 0.3 bits*, for 1.6 kB (`late-pools-120-172`), or 428 bytes
-  less than the baseline at less work (`late-pools-108-120`).
-- *On the `high` track the 48 bits belong in a round, not in pinning*: one 48-bit puzzle
-  attempted at 9 compressions instead of 6.5 pinning puzzles (`late-round48`).
 - *The clamp is needed in every round but the first to run.* Below the first pool there are
   only commitments and the witness, and an index that reaches the witness throws every later
-  fetch off by two. That frees eight operations (`late-unclamped`, 191), or pays for a ninth
-  selection and a pool 44 elements smaller (`late-unclamped-116-128`, the lowest score, and
-  `late-unclamped-104-88`, 7,854 bytes). These four instances rest on a written argument as
-  well as the audit and want a second reader.
-- *Negative:* pairing each signature with its commitment saves no operation; dropping pinning
-  caps the level at 80 bits; the opcode budget, at 11 operations per selected element, is what
-  stops pools from shrinking.
+  fetch off by two. That frees eight operations (`late-unclamped`, 191). This rests on a
+  written argument as well as the audit and wants a second reader.
+- *Negative:* pairing each signature with its commitment saves no operation, and the opcode
+  budget, at 11 operations per selected element, is what stops pools from shrinking.
 
-The gains inside this contract are a factor of 1.5 to 1.9 on the score, 16% on bytes and 4%
-on opcodes; none is an order of magnitude. Larger ones need mechanisms the
-evaluator does not yet judge ([roadmap](../../spec/ROADMAP.md)): fewer bytes per pool element
-is the lever everything else waits on.
+The search also tuned parameters against BH-SEC-1 and its `standard` floor of 81.5 bits:
+unequal pools, a ninth selection in the unclamped round, and on the `high` track a 48-bit round
+puzzle with 5-byte pinning. Eleven instances were recorded as the first board, five of them of
+this kind.
+
+### The agent search
+
+An agent search against that board found three more errors in the judge. Each is fixed in
+BH-SEC-2 and kept as a regression test
+([SECURITY-MODEL.md](spec/SECURITY-MODEL.md), section 8).
+
+- *Searching part of a round helps the attacker.* BH-SEC-1 said it never does. An attacker who
+  searches one common subset of each round's selections in every transaction loses only the
+  factor by which the colliding pairs shrink, not its square. The model now minimises the
+  birthday attack over the sizes of those subsets. Two recorded instances (pools 120-choose-8
+  with 172-choose-8, and 116-choose-8 with 128-choose-9) had been credited 81.52 and 81.55
+  bits and are worth 81.04 and 81.03.
+- *Pinning was credited at any puzzle size.* Four pinning puzzles force four sighash modes
+  only while one signature mode cannot serve two of them, and making it do so costs
+  `2^(Wa + Wb)` for the two cheapest puzzles. `security_bits` is now capped there: 80.011 bits
+  with 5-byte pinning puzzles and 96.011 with 6-byte ones.
+- *The audit's spender was too weak.* A copy of the `late` builder with every index clamp
+  removed passed the audit. It lets the last index of a round take a signature the previous
+  round did not select: the commitment fetch lands on an unlocking item and the preimage
+  fetch on a script constant, and the spender sets the one to the hash of the other. The
+  audit's spender can now set an unlocking item to whatever the other side of an equality
+  evaluates to, alters three or four unlocking items of different kinds at once, and plants
+  signatures short enough to fit under the largest pools. An instance is also refused if a
+  declared preimage is public or shared ([DESIGN.md](spec/DESIGN.md), sections 4 and 5). That
+  script is refused now.
+
+### The board now
+
+The contract moved to a new epoch, `binohash-v2`, and the board was recorded again under
+BH-SEC-2 with six instances.
+
+- The paper's standard configuration counts as 80.011 bits, the cap, where its rounds alone
+  are worth 81.521. The `standard` floor moved from 81.5 to 80.0 with it. The `high` floor
+  stays at 88.4: the 6-byte-pinning configuration is below its cap and still counts as 88.411.
+- The five instances tuned against the old model were removed. Four on the `standard` track
+  (`late-pools-120-172`, `late-pools-108-120`, `late-unclamped-116-128` and
+  `late-unclamped-104-88`) were shaped by a floor and a model that no longer apply. The fifth,
+  `high/late-round48`, has 5-byte pinning and now counts as 80.011 bits, below the `high`
+  floor.
+- The six that remain use the paper's parameters. Their bytes, opcodes and work are as first
+  recorded; only the security figure of the three `standard` rows changed.
+
+What remains of the gains is a factor of 1.6 on the `standard` score and 1.06 on `high`, with
+1% fewer bytes and 4% fewer opcodes. The parameter space is open again under the new model. On
+the `standard` track every design with 5-byte pinning whose rounds are worth at least 80.0
+bits counts as 80.011, so round parameters are no longer held to a knife edge and trade bytes
+against retries. On the `high` track pinning costs 2^48 per transaction and dominates, so more
+selections lower the level and the floor limits the product of the two rounds' selection
+counts. Larger gains need mechanisms the evaluator does not yet judge
+([roadmap](../../spec/ROADMAP.md)): fewer bytes per pool element is the lever everything else
+waits on.
 
 ## The board
 

@@ -4,7 +4,7 @@
  "title": "Binohash optimisation",
  "description": "Binohash transaction digests for Bitcoin Script: smaller scripts, fewer opcodes and less honest grinding work at a fixed claimed security level.",
  "status": "staging",
- "contractEpoch": "binohash-v1",
+ "contractEpoch": "binohash-v2",
  "category": "python",
  "direction": "-",
  "metric": {
@@ -35,7 +35,7 @@
    "id": "security_bits",
    "name": "Claimed security level",
    "unit": "bits",
-   "note": "Collision resistance under the model BH-SEC-1, in sighash evaluations. Each track fixes a floor; an instance below it is refused."
+   "note": "Collision resistance under the model BH-SEC-2, in sighash evaluations. Each track fixes a floor; an instance below it is refused."
   }
  },
  "tracks": [
@@ -43,11 +43,11 @@
    "name": "standard",
    "title": "Standard: the paper's 5-byte configuration",
    "spec": "bh1-standard",
-   "description": "At least the security level of the Binohash paper's standard configuration (5-byte pinning and round puzzles, two rounds of 120-choose-8), which this evaluator counts as 81.52 bits.",
+   "description": "At least the security level of the Binohash paper's standard configuration (5-byte pinning and round puzzles, two rounds of 120-choose-8), which this evaluator counts as 80.01 bits.",
    "standard": {
-    "model": "BH-SEC-1",
+    "model": "BH-SEC-2",
     "workModel": "BH-WORK-1",
-    "floorBits": "81.5"
+    "floorBits": "80.0"
    },
    "baseline": {
     "submission": "standard/paper-two-round",
@@ -61,7 +61,7 @@
    "spec": "bh1-high",
    "description": "At least the security level of the Binohash paper's higher-pinning configuration (6-byte pinning, 5-byte round puzzles, two rounds of 120-choose-8), which this evaluator counts as 88.41 bits.",
    "standard": {
-    "model": "BH-SEC-1",
+    "model": "BH-SEC-2",
     "workModel": "BH-WORK-1",
     "floorBits": "88.4"
    },
@@ -74,7 +74,7 @@
  ],
  "standard": {
   "construction": "binohash",
-  "summary": "A Binohash instance is a legacy locking script whose honest spends carry a transaction digest: per round, a selection of t out of n script-embedded signatures that solves a signature-size puzzle, opened against one-time commitments. The security level is collision resistance under BH-SEC-1, the accounting of the Binohash paper (section 5.3) with puzzle work counted exactly by the evaluator. It is a claimed level under stated assumptions, not a proof.",
+  "summary": "A Binohash instance is a legacy locking script whose honest spends carry a transaction digest: per round, a selection of t out of n script-embedded signatures that solves a signature-size puzzle, opened against one-time commitments. The security level is collision resistance under BH-SEC-2, the accounting of the Binohash paper (section 5.3) with puzzle work counted exactly by the evaluator. It is a claimed level under stated assumptions, not a proof.",
   "document": "spec/SECURITY-MODEL.md"
  },
  "editablePaths": [

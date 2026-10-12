@@ -2,9 +2,9 @@
  "schema": "bh-spec-v1",
  "id": "bh1-standard",
  "title": "Binohash at the security level of the paper's standard configuration (5-byte pinning, 5-byte rounds, n = 120, t = 8)",
- "model": "BH-SEC-1",
+ "model": "BH-SEC-2",
  "work": "BH-WORK-1",
- "floorBits": "81.5",
+ "floorBits": "80.0",
  "limits": {
   "maxRounds": 6,
   "testBitsMin": 6,

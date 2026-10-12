@@ -29,7 +29,7 @@ python3 challenge.py run <challenge> challenges/<challenge>/submissions/<track>/
 python3 challenge.py check                      # repository contract check
 ```
 
-Evaluator arguments for `run`: `--stage screen` (4 lanes, under a minute), no argument for the
+Evaluator arguments for `run`: `--stage screen` (4 lanes), no argument for the
 full stage, `--core tools/core/target/release/cchk` to replay spends through Bitcoin Core.
 
 ## Workflow

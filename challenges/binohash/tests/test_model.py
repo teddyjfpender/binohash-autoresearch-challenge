@@ -6,7 +6,7 @@ from decimal import Decimal
 import support  # noqa: F401
 from bh import secp256k1 as ec
 from bh.judge import Rng
-from bh.model import SizePuzzle, blocks, compressions, honest_work, log2, overlap, s_range, security_bits
+from bh.model import SizePuzzle, _level, _restricted_birthday, blocks, compressions, exp2, honest_work, log2, overlap, s_range, security_bits
 
 D_MIN = pow(ec.R_MIN, -1, ec.N)
 
@@ -62,18 +62,53 @@ class Puzzle(unittest.TestCase):
         self.assertTrue(overlap(pin(1, 42).z_intervals(), pin(1, 42).z_intervals()))
 
 
+def uncapped(pin: Decimal, rounds) -> Decimal:
+    """The level before the pinning cap, for a cheapest pinning puzzle of `pin` bits."""
+    return log2(_level(exp2(pin), rounds))
+
+
 class Security(unittest.TestCase):
     def test_one_round_is_the_papers_formula(self):
-        single = security_bits(Decimal(40), [(2 ** 40, Decimal(40))])
+        single = uncapped(Decimal(40), [(2 ** 40, Decimal(40))])
         self.assertAlmostEqual(float(single), 20 + math.log2(2 * 2 ** 40), places=9)  # section 4.6
 
     def test_two_rounds_are_the_papers_formula_with_abandoned_transactions(self):
         # Section 5.3 charges both rounds for every transaction. An attacker skips the second
         # round when the first has no solution, which happens with probability 1/e here.
-        got = security_bits(Decimal(40), [(2 ** 40, Decimal(40))] * 2)
+        # Searching a little less than all of each round does slightly better still.
+        got = uncapped(Decimal(40), [(2 ** 40, Decimal(40))] * 2)
         reached = 1 - math.exp(-1)
-        self.assertAlmostEqual(float(got), 40 + math.log2(2 ** 40 * (2 + reached)), places=9)
+        paper = 40 + math.log2(2 ** 40 * (2 + reached))
+        self.assertLessEqual(float(got), paper)
+        self.assertAlmostEqual(float(got), paper, places=2)
         self.assertLess(got, 40 + math.log2(3 * 2 ** 40))
+
+    def test_searching_part_of_an_oversized_round_helps_the_attacker(self):
+        # Found by the first agent search, twice. A round with far more selections than its
+        # puzzle needs seemed to make every transaction dear to search. An attacker who searches
+        # the same 2^k selections in every transaction pays 2^k per transaction and loses only
+        # the square root of the shrinkage in pairs.
+        w = Decimal(40)
+        rounds = [(2 ** 40, w), (2 ** 56, w)]
+        reached = 1 - math.exp(-1)
+        exhaustive = math.log2(2 ** 40 + 2 ** 40 + reached * 2 ** 56) + 40 - 20 + 40 - 28
+        self.assertLess(float(log2(_restricted_birthday(exp2(w), rounds))), exhaustive - 5)
+        # Two pool shapes the first board recorded above the old floor of 81.5.
+        w5 = SizePuzzle(D_MIN, 55).bits
+        for pools in (((120, 8), (172, 8)), ((116, 8), (128, 9))):
+            level = uncapped(w5, [(math.comb(n, t), w5) for n, t in pools])
+            self.assertLess(level, Decimal("81.1"), pools)
+
+    def test_pinning_is_worth_no_more_than_two_of_its_puzzles(self):
+        # Four pinning puzzles force four sighash modes only while one mode cannot serve two of
+        # them. That is 2^(Wa + Wb) work, so no level above it is credited.
+        rounds = [(2 ** 56, Decimal(56))] * 2
+        self.assertEqual(security_bits([Decimal(40)] * 4, rounds), Decimal(80))
+        self.assertEqual(security_bits([Decimal(48), Decimal(40), Decimal(48), Decimal(32)], rounds), Decimal(72))
+        self.assertGreater(security_bits([Decimal(56)] * 4, rounds), Decimal(110))
+        # Below the cap, the cheapest puzzle is what a fresh transaction costs.
+        small = [(2 ** 40, Decimal(40))] * 2
+        self.assertEqual(security_bits([Decimal(48)] * 4, small), uncapped(Decimal(48), small))
 
     def test_a_scarce_cheap_round_buys_nothing(self):
         # Found by the first parameter search: a 32-bit round with few selections next to a
@@ -88,14 +123,17 @@ class Security(unittest.TestCase):
         for e in (40, 46, 52, 60):
             level = security_bits(None, [(2 ** 40, Decimal(40)), (2 ** e, Decimal(40))])
             self.assertLess(level, 80.1)
-        pinned = [security_bits(Decimal(40), [(2 ** 40, Decimal(40)), (2 ** e, Decimal(40))]) for e in (44, 52, 60, 70)]
+        pinned = [uncapped(Decimal(40), [(2 ** 40, Decimal(40)), (2 ** e, Decimal(40))]) for e in (44, 52, 60, 70)]
         self.assertEqual(pinned, sorted(pinned, reverse=True))
 
     def test_published_configurations(self):
         w = SizePuzzle(D_MIN, 55).bits
         space = math.comb(120, 8)
-        self.assertEqual(f"{security_bits(w, [(space, w)] * 2):.3f}", "81.521")
-        self.assertEqual(f"{security_bits(SizePuzzle(D_MIN, 54).bits, [(space, w)] * 2):.3f}", "88.411")
+        # The paper's standard configuration pins with 5-byte puzzles and sits on the cap.
+        self.assertEqual(f"{uncapped(w, [(space, w)] * 2):.3f}", "81.521")
+        self.assertEqual(f"{security_bits([w] * 4, [(space, w)] * 2):.3f}", "80.011")
+        six = SizePuzzle(D_MIN, 54).bits
+        self.assertEqual(f"{security_bits([six] * 4, [(space, w)] * 2):.3f}", "88.411")
 
 
 class Work(unittest.TestCase):

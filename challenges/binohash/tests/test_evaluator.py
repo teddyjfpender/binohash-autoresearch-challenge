@@ -27,6 +27,7 @@ REFUSED = {
     "pool-duplicate": "nonce-space",        # fewer distinct selections than claimed
     "pool-outside-scriptcode": "nonce-space",  # selections that do not change the sighash
     "commit-duplicate": "binding",          # one preimage opens two elements
+    "preimage-is-key": "binding",           # an opening anyone can read off the script
     "wrong-dlog": "puzzle-key",             # a puzzle key the claimed work does not follow from
     "twin-differs": "twin",                 # a test script that is not the production script
     "if-branch": "straight-line",           # control flow the audit does not cover
@@ -73,6 +74,31 @@ class Defects(unittest.TestCase):
                 with self.assertRaises(Reject) as caught:
                     judge(specimen.build(faults=(fault,)))
                 self.assertEqual(caught.exception.stage, stage, caught.exception.reason)
+
+
+class Oracle(unittest.TestCase):
+    """What the audit's spender is taken to be able to arrange."""
+
+    def accepts(self, items, locking) -> bool:
+        from bh import script as S
+        from bh.interp import verify
+        from bh.judge import Rng, reference_tx
+        tx = reference_tx(Rng(SEED, "oracle"))
+        return verify(b"".join(S.push(i) for i in items), locking, tx, 0, oracle=True)
+
+    def test_an_unlocking_item_can_equal_the_hash_of_a_script_constant(self):
+        # Found by an agent: with no clamp, a late-pool script let the last index of a round reach
+        # the previous round's unselected signatures. The commitment fetch then lands on an
+        # unlocking item and the preimage fetch on a script constant, and the spender sets the
+        # one to the hash of the other. The audit's oracle did not count that as satisfiable, so
+        # the altered spend "failed" and the script passed.
+        from bh import script as S
+        constant = bytes(range(20))
+        locking = S.push(constant) + bytes([S.OP_HASH160, S.OP_EQUALVERIFY, S.OP_1])
+        self.assertTrue(self.accepts([b"anything"], locking))
+        # The hash of an unlocking item still has to be opened honestly.
+        locking = bytes([S.OP_HASH160]) + S.push(constant) + bytes([S.OP_EQUALVERIFY, S.OP_1])
+        self.assertFalse(self.accepts([b"anything"], locking))
 
 
 class Format(unittest.TestCase):

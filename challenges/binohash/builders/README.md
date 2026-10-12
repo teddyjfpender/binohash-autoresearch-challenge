@@ -43,6 +43,13 @@ def build(knobs: dict[str, str]) -> dict: ...   # a bh-instance-v1 object
 Counts for `n:t` rounds: `13 + sum(11 t + 5)` operations; about `31 n + 230` bytes of locking
 script per round plus 201 for pinning.
 
+`BINO_PIN_BYTES` also sets the pinning cap of the security model: no level is credited above
+the work of two pinning puzzles, which is 80.011 bits at `5` and 96.011 at `6`
+([spec/SECURITY-MODEL.md](../spec/SECURITY-MODEL.md), section 4). The `high` track's floor of
+88.4 therefore needs `6` or more. The argument for `BINO_CLAMP=later` covers only the
+`late` layout and only the round that runs first; a copy of `late` with no clamp in any round
+is refused by the audit.
+
 ## The kit
 
 [`kit.py`](kit.py) has the parts any builder needs:
@@ -64,6 +71,8 @@ script per round plus 201 for pinning.
    your script expects on top.
 4. Run it: `python3 challenge.py run binohash <submission dir> -- --stage screen`. A refusal at
    `honest-spend` usually means a depth is off by one; at `structure` the script does not make a
-   check the instance declares; at `soundness` it makes it but an altered spend gets around it.
+   check the instance declares; at `soundness` it makes it but an altered spend gets around it;
+   at `binding` a commitment or preimage is too short, shared, or equal to a public key or a
+   push of the script.
 5. Check the stack depths by executing, not by counting: `bh.interp.verify(..., oracle=True,
    trace=Trace())` on a placeholder spend shows which pushes reached each check.

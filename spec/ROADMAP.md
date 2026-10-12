@@ -22,12 +22,17 @@ policy, the submission manifest, the ledger, the site feed and the judge workflo
 ## Order of work for Binohash
 
 1. **Record the starting board** under the ledger key and move the tracks' baselines from
-   pending to recorded ([OPERATIONS.md](OPERATIONS.md)). Done.
+   pending to recorded ([OPERATIONS.md](OPERATIONS.md)). Done for the first board, and again
+   for the six instances kept under BH-SEC-2.
 2. **First submission judged end to end** on hosted runners.
-3. **Independent review of BH-SEC-1**, in particular of the puzzle accounting (8 bits per byte,
-   where the paper states 8 bits plus 2) and of the two attacks it prices rounds by. The first
-   search already corrected the model once; the best instances now sit where its two attacks
-   meet, which is where a third would show.
+3. **Independent review of BH-SEC-2**, in particular of the puzzle accounting (8 bits per byte,
+   where the paper states 8 bits plus 2), of the two attacks it prices rounds by and of the
+   pinning cap. Searches have corrected the model twice: once before the board was recorded,
+   and again when an agent search found that a partial search helps the attacker and that
+   pinning was credited at any puzzle size. The model does not price what an attacker gains
+   at the cap, and it leaves hash-type byte freedom out; a two-sided estimate of about 4 bits
+   per round beyond the first has not been reconciled with the paper's figure of under one
+   bit.
 4. **A production spend.** One transaction ground at full difficulty for the baseline of the
    `standard` track and accepted by Bitcoin Core, on regtest with a pinned node. This closes the
    gap between the test twin and the production script for one instance, and with it the
@@ -42,7 +47,7 @@ Each needs evaluator support, a security argument and tests that break it on pur
 | Mechanism | What it would change | What is missing |
 | --- | --- | --- |
 | Polyglot digest (Binohash appendix D) | Pool signatures that are themselves commitments: about 3.7 kB and two operations per selection less | A test twin for elements that cost 2^46 hashes each to make, and setup work in the work model |
-| Sub-byte puzzle difficulty | Security levels finer than 8 bits, so the floor binds exactly | A puzzle kind the evaluator can count |
+| Sub-byte puzzle difficulty | Puzzle work in steps finer than 8 bits, so a level can be set between the ones whole bytes allow | A puzzle kind the evaluator can count |
 | Pools shared between rounds | Half the signature bytes | An analysis of correlated rounds in the security model |
 | Hash-type freedom in the model | The on-chain half of a collision is cheaper (Binohash 7.2) | A scored treatment instead of a stated exclusion |
 | Conditional execution | Scripts with branches | An audit that covers every branch |

@@ -40,8 +40,12 @@ Round 0 runs second, with the signatures round 1 left behind lying directly belo
 keeps its clamp: the defect test `no-clamp` shows the selection an unclamped index makes there.
 
 The audit exercises both halves of this: every index is swept over every depth, with and
-without signatures planted under the witness, by a spender who can open any commitment. On
-public lanes every accepted alteration kept the declared structure. That is a search and the
+without signatures planted under the witness, by a spender who can open any commitment and can
+set an unlocking item to whatever an equality compares it with. On public lanes every accepted
+alteration kept the declared structure. A copy of this builder with the clamp removed from
+every round passed an earlier audit and is refused by the present one. The accepted spend
+there took a signature the previous round had not selected, which needs an unclamped round
+that runs after another; here the only unclamped round runs first. That is a search and the
 argument above is prose; this instance needs a maintainer's reading before it is relied on,
 and the argument depends on properties of this layout (what lies below the first pool, and
 that two non-key constants sit directly above the witness) that a variant could lose.
@@ -50,14 +54,14 @@ that two non-key constants sit directly above the witness) that a variant could 
 
 | | Bytes | Opcodes | Work | Security |
 | --- | ---: | ---: | ---: | ---: |
-| `late-pools` | 9,293 | 199 | 2^46.081 | 81.521 |
-| this | 9,269 | 191 | 2^46.121 | 81.521 |
+| `late-pools` | 9,293 | 199 | 2^46.081 | 80.011 |
+| this | 9,269 | 191 | 2^46.121 | 80.011 |
 
 Score 123,217,063 against 125,190,801 for `late-pools` and 198,865,940 for the baseline. Work is 0.04 bits higher than `late-pools`: the script is 24 bytes shorter, which moves round 0's pool across a SHA-256 block boundary and costs its attempts one more compression (10 instead of 9). Compressions per attempt depend on where a pool falls modulo 64 bytes; nothing here tunes that.
 
 ## Result and next steps
 
-Eight operations are free for the application, or for a ninth selection in the unclamped round (`late-unclamped-116-128`). Unclamping round 0 as well would need a layout in which round 1 leaves nothing selectable behind.
+Eight operations are free for the application, or for a ninth selection in the unclamped round. An instance that spent them that way (`late-unclamped-116-128`) was recorded on the first board under the old model BH-SEC-1 at 81.55 bits and removed: BH-SEC-2 counts its rounds as 81.03 bits, because an attacker searches only part of an oversized round. The level of this instance is the pinning cap, 80.011 bits against a floor of 80.0; its rounds alone are worth 81.521. Unclamping round 0 as well would need a layout in which round 1 leaves nothing selectable behind.
 
 ## Attribution
 

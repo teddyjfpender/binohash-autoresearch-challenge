@@ -249,6 +249,12 @@ class Instance:
                 raise Reject("binding", f"{name}: preimages must be {self.limits['minPreimageBytes']} to 520 bytes")
             if any(not 1 <= len(k) <= S.MAX_ELEMENT_BYTES for k in keys):
                 raise Reject("format", f"{name}: keys must be 1 to 520 bytes")
+            # A preimage anyone can read off the instance signs nothing: the element's key is
+            # recoverable from its signature, and every push of the script is public.
+            public = set(keys) | {data for _op, data, _end in self.ops.values() if data is not None}
+            if public & set(preimages) or len(set(preimages)) != n:
+                raise Reject("binding", f"{name}: a preimage equals a public key or a push of the script, or two "
+                             "elements share one; a commitment must hide a value of its own")
             self.rounds.append(Round(puzzle, t, pool, commit, keys, preimages, slots))
         if {r.puzzle.id for r in self.rounds} != {p.id for p in self.puzzles.values() if p.role == "round"}:
             raise Reject("structure", "every round puzzle must belong to a round")

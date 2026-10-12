@@ -49,10 +49,11 @@ The audit agrees: on public lanes, every altered spend it accepted had the decla
 
 | | Bytes | Opcodes | Work | Security | Compressions per attempt |
 | --- | ---: | ---: | ---: | ---: | --- |
-| `paper-two-round` | 9,349 | 199 | 2^46.740 | 81.521 | 71 and 9 |
-| this | 9,293 | 199 | 2^46.081 | 81.521 | 9 and 32 |
+| `paper-two-round` | 9,349 | 199 | 2^46.740 | 80.011 | 71 and 9 |
+| this | 9,293 | 199 | 2^46.081 | 80.011 | 9 and 32 |
 
-Score 125,190,801 against 198,865,940: 1.59 times lower.
+Score 125,190,801 against 198,865,940: 1.59 times lower. Security is the level under BH-SEC-2:
+the pinning cap of 80.011 bits for both instances, whose rounds alone are worth 81.521.
 
 What did not work, or did not help:
 
@@ -69,7 +70,11 @@ What did not work, or did not help:
 
 A strict improvement on the baseline at the same parameters. What remains in the work: round
 1's attempts still rehash round 0's 1,200-byte pool (19 of its 32 compressions), and 3.5
-transactions are tried per spend. `late-pools-120-172` addresses the second.
+transactions are tried per spend. A larger second pool lowers the second. An instance tuned
+that way against the old model BH-SEC-1 (`late-pools-120-172`) was removed from the board:
+it had been credited 81.52 bits and its rounds are worth 81.04 under BH-SEC-2, because an
+attacker searches only part of an oversized round. With the floor now at 80.0 and the level
+held at the cap, pool sizes on this track trade bytes against retries.
 
 ## Attribution
 
