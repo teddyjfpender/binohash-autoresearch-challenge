@@ -61,8 +61,8 @@ Skipping a check does not make an instance cheaper; it makes it invalid.
 
 ## Reference numbers
 
-Measured on public lanes with the Core comparison ([starting board](starting-board.json)). The
-judge's rows replace them once the board is recorded.
+The starting board, as recorded in the ledger: each instance validated at the full stage under a
+ledger-key seed, with the Core comparison ([`results.tsv`](results.tsv)).
 
 | Track | Instance | Bytes | Opcodes | Work | Security | Score | |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |

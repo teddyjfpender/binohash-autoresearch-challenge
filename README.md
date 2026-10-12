@@ -10,9 +10,9 @@ are tuned. Each architecture keeps its own best instance on the board, so a new 
 recorded before it is competitive and can be improved from there.
 
 **Status: staging.** The evaluator, the contract and a starting board of eleven instances are in
-place, and a first search has been run against them
-([what it found](challenges/binohash/README.md#what-the-first-search-found)). The ledger is
-empty until a maintainer records the starting board under the ledger key
+place and recorded in the ledger, and a first search has been run against them
+([what it found](challenges/binohash/README.md#what-the-first-search-found)). The judge has
+not yet run on a submission, and numbers may be re-validated before the challenge goes live
 ([activation](data/site/activation.json)).
 
 ## Challenges

@@ -50,9 +50,7 @@
     "floorBits": "81.5"
    },
    "baseline": {
-    "pending": true,
-    "catalogue": "starting-board.json",
-    "candidate": "paper-standard",
+    "submission": "standard/paper-two-round",
     "target": "binohash-paper-standard",
     "note": "The construction of the Binohash paper (Appendix A pinning, Appendix B rounds) with its published parameters, built by this repository and counted by this evaluator."
    }
@@ -68,9 +66,7 @@
     "floorBits": "88.4"
    },
    "baseline": {
-    "pending": true,
-    "catalogue": "starting-board.json",
-    "candidate": "paper-high",
+    "submission": "high/paper-pin6",
     "target": "binohash-paper-high",
     "note": "The same construction with 6-byte pinning puzzles, as in the paper's 'Higher W1' row."
    }

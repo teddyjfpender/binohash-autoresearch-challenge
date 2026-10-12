@@ -22,7 +22,7 @@ policy, the submission manifest, the ledger, the site feed and the judge workflo
 ## Order of work for Binohash
 
 1. **Record the starting board** under the ledger key and move the tracks' baselines from
-   pending to recorded ([OPERATIONS.md](OPERATIONS.md)).
+   pending to recorded ([OPERATIONS.md](OPERATIONS.md)). Done.
 2. **First submission judged end to end** on hosted runners.
 3. **Independent review of BH-SEC-1**, in particular of the puzzle accounting (8 bits per byte,
    where the paper states 8 bits plus 2) and of the two attacks it prices rounds by. The first
