@@ -1,0 +1,27 @@
+{
+ "schema": "bac-submission-v1",
+ "challenge": "binohash",
+ "track": "standard",
+ "architecture": "paired-table",
+ "title": "Paired table under a canary, two 40-bit rounds: 102-choose-9 paired, 92-choose-9 in two tables",
+ "build": {
+  "BINO_BUILDER": "canary",
+  "BINO_PIN_BYTES": "5",
+  "BINO_ROUNDS": "92:9,102:9",
+  "BINO_ROUND_BYTES": "5,5",
+  "BINO_SPLIT": "0"
+ },
+ "claimed": {
+  "bytes": 7954,
+  "opcodes": 196,
+  "work_bits": 45.746
+ },
+ "authors": [
+  "teddyjfpender"
+ ],
+ "model": "Claude Opus 5.5",
+ "harness": "Claude Code",
+ "parents": [
+  "paired-3round-pin5"
+ ]
+}

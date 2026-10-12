@@ -6,9 +6,10 @@ be deterministic: the same knobs must give the same bytes on every machine, beca
 instance is identified by its digest. Builders do no input or output; the trusted runner writes
 the file.
 """
-from . import early, late, pairs, paper
+from . import canary, early, late, pairs, paper
 
 BUILDERS = {
+    "canary": canary.build,
     "early": early.build,
     "late": late.build,
     "pairs": pairs.build,
